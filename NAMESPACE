@@ -1,0 +1,24 @@
+# FOR FUTURE USE
+# useDynLib(mokken)
+
+export(
+ ConstraintMatrix,
+ DesignMatrix,
+ DirectSum,
+ JoinModels,
+ MarginalMatrix,
+ MarginalModelFit,
+ ModelStatistics,
+# MultiCoefficient,
+# RecordsToFrequencies,
+ SampleStatistics,
+ SpecifyCoefficient
+)
+
+# used internally - not intended to be visible to users
+# All other functions (not listed)
+#
+
+# FOR FUTURE USE
+# S3method(summary, "ModelStatisticsClass")
+# S3method(summary, "SampleStatisticsClass")

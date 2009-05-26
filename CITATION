@@ -1,0 +1,17 @@
+citHeader("To cite package 'cmm' in publications use:")
+
+citEntry(entry = "Article",
+         title        = "cmm: An R package for marginal modelling of categorical data",
+         author       = personList(as.person("Wicher P. Bergsma"),as.person("L. Andries van der Ark")),
+         journal      = "Unpublished manuscript",
+         year         = "2009",
+         volume       = "",
+         number       = "",
+         pages        = "",
+         url          = "http://www.cmm.st",
+
+         textVersion  = paste("Wicher P. Bergsma and L. Andries van der Ark (2009).",
+               "cmm: An R package for marginal modelling of categorical data,",
+               "Unpublished manuscript",
+             "URL http://www.cmm.st")
+)

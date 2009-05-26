@@ -1,0 +1,10 @@
+desc <- packageDescription("cmm")
+year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", desc$Date)
+vers <- paste("R package version", desc$Version)
+citEntry(entry="Manual",
+title = "cmm: Categorical Marginal Models",
+author = personList(as.person("Wicher P. Bergsma"),
+                    as.person("L. Andries van der Ark")),
+year = year,
+note = vers,
+textVersion = paste("Bergsma, W. P., & Van der Ark, L. A. (",year,"). cmm: Categorical marginal models. ",vers,".", sep=""))
