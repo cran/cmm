@@ -102,7 +102,8 @@ model6 = list(model4, x);
 # NB: when fitting model6 Labels and CoefficientDimensions should be appropriate to get the right output
 # for table IRT, which is different than for model5
 #NB: REMOVE "#" IN NEXT LINE, WON'T GO THROUGH R-CHECK
-#pi5 = MarginalModelFit(DutchConcern, model6, ShowProgress = 5, CoefficientDimensions = c(2, 3, 10), Labels = c("I", "R", "T"), MaxSteps = 500);
+#pi5 = MarginalModelFit(DutchConcern, model6, ShowProgress = 5, CoefficientDimensions = c(2, 3, 10), Labels = c("I", "R", "T"), MaxSteps = 500, MaxStepSize=.2);
+
 
 }
 \keyword{datasets}

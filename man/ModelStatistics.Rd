@@ -9,7 +9,7 @@ fitted values, estimated standard errors, z-scores and adjusted residuals of one
 }
 
 \usage{ModelStatistics(dat, fitfreq, model, coeff, CoefficientDimensions="Automatic",
-    Labels="Automatic",ShowCoefficients=TRUE,ShowParameters=FALSE,Method="ML", ParameterCoding="Effect", ShowCorrelations=FALSE, Title="")}
+    Labels="Automatic", Method="ML", ShowCoefficients=TRUE, ShowParameters=FALSE, ParameterCoding="Effect", ShowCorrelations=FALSE, Title="")}
 
 \arguments{
 \item{dat}{observed data as a list of frequencies or as a data frame}
@@ -42,7 +42,7 @@ quartic effect, then \eqn{q_i}{q_i} takes the values \eqn{(-1.5,-.5,.5,1.5)}{(-1
 (centralized squares of the \eqn{q_i}{q_i}), and \eqn{s_i}{s_i} takes the values 
 \eqn{(-3.375,-.125,.125,3.375)}{(-3.375, -.125, .125, 3.375)} (cubes of the \eqn{q_i}{q_i}).}
 
-\value{ NA. Only output to the screen is provided }
+\value{ A subset of the output of \code{MarginalModelFit}. }
 
 \references{
   Bergsma, W. P. (1997).
@@ -62,5 +62,27 @@ quartic effect, then \eqn{q_i}{q_i} takes the values \eqn{(-1.5,-.5,.5,1.5)}{(-1
 
 \seealso{ \code{\link{ModelStatistics}},
 \code{\link{MarginalModelFit}}}
+
+\examples{
+
+#Below an example where ModelStatistics can be used to get output for coefficients not given by MarginalModelFit 
+
+# Marginal homogeneity (MH) in a 3x3 table AB
+# Note that MH is equivalent to independence in the 2x3 table of marginals IR, in which the 
+# row with I=1 gives the A marginal, and the row with I=2 gives the B marginal 
+n <- c(1,2,3,4,5,6,7,8,9)
+at <- MarginalMatrix(c("A","B"),list(c("A"),c("B")),c(3,3))
+bt <- ConstraintMatrix(c("I","R"),list(c("I"),c("R")),c(2,3))
+model <- list( bt, "log", at)
+
+#The "coefficients" for the model are the log marginal probabilities for table IR
+fit <- MarginalModelFit(n,model,CoefficientDimensions=c(2,3),Labels=c("I","R"))
+
+#to get output for the marginal probabilities, ModelStatistics can be used as follows
+spec = SpecifyCoefficient("ConditionalProbabilities",list(c("I","R"),c("I"),c(2,3)))
+coeff = list(spec,at)
+stats <- ModelStatistics(n,fit$FittedFrequencies,model,coeff,CoefficientDimensions=c(2,3),Labels=c("I","R"))
+
+}
 
 \keyword{univar}

@@ -65,17 +65,30 @@ library(MASS)
 
 
 ##############################################################################
-# DirectSum (from web)
-DirectSum <- function (m1, m2, p.tr = 0, p.ll = 0)
-{
-     ## p.tr and p.ll are padding values
-     topleft <- m1
-     topright <- matrix(p.tr, nrow(m1), ncol(m2))
-     colnames(topright) <- colnames(m2)
-     lowleft <- matrix(p.ll, nrow(m2), ncol(m1))
-     lowright <- m2
-     rbind(cbind(topleft, topright), cbind(lowleft, lowright))
+# DirectSum (modified from web), takes variable no of args
+
+DirectSum <- function (...){
+     p.tr = 0;p.ll = 0;   ## p.tr and p.ll are padding values: originally given as optional args to function
+     matlist = list(...);
+     nmat = length(matlist);
+     m1 = matlist[[1]];
+     matlist = if(nmat==1 && is.list(m1)) m1 else matlist # check if list of matrices is given and amend accordingly
+     nmat = length(matlist);                              # ,,
+     m1 = matlist[[1]];                                   # ,,
+     if(nmat==1) return(m1);
+     for(i in 2:nmat){ 
+        m2 = matlist[[i]];
+        topleft <- m1
+        topright <- matrix(p.tr, nrow(m1), ncol(m2))
+        colnames(topright) <- colnames(m2)
+        lowleft <- matrix(p.ll, nrow(m2), ncol(m1))
+        lowright <- m2
+        m1 = rbind(cbind(topleft, topright), cbind(lowleft, lowright))
+     }
+     m1
 } 
+
+#a=matrix(1:12,3,4);b=matrix(rep(2,6),3,2);DirectSum(a);
 
 
 
@@ -212,8 +225,35 @@ DesignMatrix = function(var, suffconfigs, dim, SubsetCoding="Automatic", MakeSub
 #DesignMatrix(c(1,2,3),list(c(1,2),c(2,3)),c(3,3,3),SubsetCoding=list(list(c(1,2),c("Linear","Linear")),list(c(1,2),c("Linear","Linear"))))
 #t(DesignMatrix(c(1,2),c(1,2),c(3,3),SubsetCoding="Identity",MakeSubsets=FALSE))
 
-MarginalMatrix = function(var,marg,dim,SubsetCoding="Identity"){
-   t(DesignMatrix(var,marg,dim,SubsetCoding=SubsetCoding,MakeSubsets=FALSE))
+
+
+EMarginalMatrix <- function(X, marg=NULL, var=var.default, dim=dim.default){
+  var.default <- 1:ncol(X)
+  X <- X[,var]
+  if(class(marg)!="list")marg <- list(marg)
+  match.c <- function(strng,positions,criteria) all(unlist(strsplit(strng,NULL))[positions] == criteria)
+  dim.default <- apply(cbind(X,NA),2, unique)[-(ncol(X)+1)]
+  dim <- lapply(dim, sort)
+  n <- table(apply(X,1,paste, collapse=""))
+  lab.n <- names(n)
+  D <- NULL; i <- 1; j <- 1
+  for (i in 1:length(marg)){
+    if(is.null(marg[[i]])) D <- rbind(D, rep(1,length(lab.n)))
+    else{
+      c.values <- expand.grid(dim[marg[[i]]])
+      if(ncol(c.values) > 1) c.values <- c.values[,ncol(c.values):1]
+      c.positions <- marg[[i]]
+      for (j in 1:nrow(c.values)) D <- rbind(D,sapply(lab.n, match.c, c.positions, c.values[j,])*1)
+    }
+  }
+  return(D)
+}
+
+MarginalMatrix = function(var,marg,dim,SubsetCoding="Identity",SelectCells="All"){
+   if( isTRUE(SelectCells=="All") )
+      t(DesignMatrix(var,marg,dim,SubsetCoding=SubsetCoding,MakeSubsets=FALSE))
+   else
+      EMarginalMatrix(SelectCells,marg,var,dim)
 }
 #MarginalMatrix(c(1,2),list(c(1),c(2)),c(3,3))
 
@@ -281,7 +321,7 @@ betamat = function(var, subvar, dim, coding){
    coding = if( is.character(coding)&&length(coding)==1 ) as.list(rep(coding,nvar)) else coding;
 
    matlist = list();
-   for( i in 1:nvar ){ matlist[[i]] = if(is.element(var[[i]],subvar)) lmat2(coding[[i]],dim[[i]]) else lmat1(coding[[i]],dim[[i]]) }
+   for( i in 1:nvar ){matlist[[i]] = if(is.element(var[[i]],subvar)) lmat2(coding[[i]],dim[[i]]) else lmat1(coding[[i]],dim[[i]]) }
 
    mat = matlist[[1]] 
    if(nvar==1) mat else for(i in 2:nvar) mat = kronecker(mat,matlist[[i]])
@@ -356,7 +396,7 @@ spec.logprob <- function(dim){
 }
 
 
-spec.condprob <- function(z){
+spec.condprob <- function(z){  # z=(var,condvar,dim)
   var = z[[1]];
   condvar = z[[2]];
   dim = z[[3]];
@@ -662,6 +702,89 @@ spec.logOR <- function(z){
 }
 
 
+#unitvec(5,2) yields c(0,1,0,0,0)
+unitvec <- function(n,k){ a=rep(0,n); a[k]=1; a }
+
+spec.ordinal.loc.L <- function(z){
+
+   nvar = z[[1]];
+   ncat = z[[2]];
+   
+   spec0 = spec.condprob(list(c(1,2),c(1),c(nvar,ncat)))
+   matlist0 = spec0[[1]];
+   funlist0 = spec0[[2]];
+
+   m1a = list(); k=0;
+   for(a in 1:nvar) for(b in 1:nvar) for(i in 1:(ncat-1)) for(j in (i+1):(ncat)) 
+      {k=k+1; m1a[[k]]=unitvec(nvar*ncat,(a-1)*ncat+i)+unitvec(nvar*ncat,(b-1)*ncat+j)}
+   m1a = do.call(rbind,m1a);
+   m1b = list(); k=0;
+   for(a in 1:nvar) for(b in 1:nvar) for(j in 1:(ncat-1)) for(i in (j+1):(ncat)) 
+      {k=k+1; m1b[[k]]=unitvec(nvar*ncat,(a-1)*ncat+i)+unitvec(nvar*ncat,(b-1)*ncat+j)}
+   m1b = do.call(rbind,m1b);
+   m1 = rbind(m1a,m1b);
+   one = t(as.matrix(rep(1,ncat*(ncat-1)/2)));
+   m2 = one; for(i in 1:(nvar^2-1)) m2 = DirectSum(m2,one)
+   m2 = DirectSum(m2,m2)
+   m3 =diag(dim(m2)[[1]]/2)
+   m3 = cbind(m3,-m3)
+   
+   matlist1 = list(m3,m2,m1);
+   funlist1 = list("log","exp","log");
+
+   list(append(matlist1,matlist0),append(funlist1,funlist0))
+}
+
+spec.ordinal.loc.A <- function(z){ #z=c(nvar,ncat)
+   spec0 = spec.ordinal.loc.L(z);
+   spec0[[2]][[1]] = "identity";  
+   spec0
+}
+#mat=spec.ordinal.loc.A(c(2,3))
+
+
+spec.ordinal.disp.L <- function(z){
+
+   nvar = z[[1]];
+   ncat = z[[2]];
+   if(ncat<3){print("Number of categories must be at least 3");stop()};
+   
+   spec0 = spec.condprob(list(c(1,2),c(1),c(nvar,ncat)))
+   matlist0 = spec0[[1]];
+   funlist0 = spec0[[2]];
+
+   m1a = list(); z=0;
+   for(a in 1:nvar) for(b in 1:nvar) for(i in 1:(ncat-2)) for(j in (i+1):(ncat-1))  for(k in (j):(ncat-1))  for(l in (k+1):(ncat)) 
+      {z=z+1; m1a[[z]]=unitvec(nvar*ncat,(a-1)*ncat+i)+unitvec(nvar*ncat,(b-1)*ncat+j)+unitvec(nvar*ncat,(b-1)*ncat+k)+unitvec(nvar*ncat,(a-1)*ncat+l)}
+   m1a = do.call(rbind,m1a);
+   m1b = list(); z=0;
+   for(a in 1:nvar) for(b in 1:nvar) for(i in 1:(ncat-2)) for(j in (i+1):(ncat-1))  for(k in (j):(ncat-1))  for(l in (k+1):(ncat)) 
+      {z=z+1; m1b[[z]]=unitvec(nvar*ncat,(b-1)*ncat+i)+unitvec(nvar*ncat,(a-1)*ncat+j)+unitvec(nvar*ncat,(a-1)*ncat+k)+unitvec(nvar*ncat,(b-1)*ncat+l)}
+   m1b = do.call(rbind,m1b);
+   m1 = rbind(m1a,m1b);
+   one = t(as.matrix(rep(1,(2*ncat-ncat^2-2*ncat^3+ncat^4)/24))); #length found with MMA
+   m2 = one; for(i in 1:(nvar^2-1)) m2 = DirectSum(m2,one)
+   m2 = DirectSum(m2,m2)
+   m3 = diag(dim(m2)[[1]]/2)
+   m3 = cbind(m3,-m3)
+   
+   matlist1 = list(m3,m2,m1);
+   funlist1 = list("log","exp","log");
+
+   list(append(matlist1,matlist0),append(funlist1,funlist0))
+
+}
+#spec.ordinal.disp.L(c(2,3))
+
+spec.ordinal.disp.A <- function(z){ #z=c(nvar,ncat)
+   spec0 = spec.ordinal.disp.L(z);
+   spec0[[1]][[1]] = 4*spec0[[1]][[1]];  
+   spec0[[2]][[1]] = "identity";  
+   spec0
+}
+#spec.ordinal.disp.A(c(2,3))
+
+
 MultiCoefficient <- function(coeff,k){
     if( k == 1 ) newcoeff <- coeff
     else{
@@ -696,39 +819,76 @@ SpecifyCoefficient <- function(name,arg,rep=1){
         "Probabilities" = spec.prob(z),
         "LogProbabilities" = spec.logprob(z),
         "LoglinearParameters" = spec.loglinearpars(z), #z=dim
-        "LogOddsRatio" = spec.logOR(z)
+        "LogOddsRatio" = spec.logOR(z),
+        "OrdinalLocation-A" = spec.ordinal.loc.A(z),
+        "OrdinalLocation-L" = spec.ordinal.loc.L(z),
+        "OrdinalDispersion-A" = spec.ordinal.disp.A(z),
+        "OrdinalDispersion-L" = spec.ordinal.disp.L(z)
         )
     MultiCoefficient(coeff,rep)
 }
 
 
-JoinModels <- function(model1,model2){
+#OLD
+#JoinModels <- function(model1,model2){
+#
+#  model1 = tomodelform(model1);
+#  model2 = tomodelform(model2);#
+#
+#  bt1 = model1[[1]][[1]]
+#  matlist1 = model1[[1]][[2]][[1]]
+#  funlist1 = model1[[1]][[2]][[2]]
+#  at1 = model1[[1]][[3]]
+#  x1 = model1[[2]]
 
-  model1 = tomodelform(model1);
-  model2 = tomodelform(model2);
+#  bt2 = model2[[1]][[1]]
+#  matlist2 = model2[[1]][[2]][[1]]
+#  funlist2 = model2[[1]][[2]][[2]]
+#  at2 = model2[[1]][[3]]
+#  x2 = model2[[2]]#
 
-  bt1 = model1[[1]][[1]]
-  matlist1 = model1[[1]][[2]][[1]]
-  funlist1 = model1[[1]][[2]][[2]]
-  at1 = model1[[1]][[3]]
-  x1 = model1[[2]]
+#  bt = DirectSum(bt1,bt2)
+#  matlist = list();
+#  for(i in 1:length(matlist1)) matlist[[i]] = DirectSum(matlist1[[i]],matlist2[[i]])
+#  funlist = if( length(funlist1)==length(funlist2) && funlist1[[1]]==funlist2[[1]] ) funlist1 else break;
+#  at = rbind(at1,at2)
+#  model = list(bt,list(matlist,funlist),at);
+#  
+#  return(model)
+#
+#}
 
-  bt2 = model2[[1]][[1]]
-  matlist2 = model2[[1]][[2]][[1]]
-  funlist2 = model2[[1]][[2]][[2]]
-  at2 = model2[[1]][[3]]
-  x2 = model2[[2]]
-
-  bt = DirectSum(bt1,bt2)
-  matlist = list();
-  for(i in 1:length(matlist1)) matlist[[i]] = DirectSum(matlist1[[i]],matlist2[[i]])
-  funlist = if( length(funlist1)==length(funlist2) && funlist1[[1]]==funlist2[[1]] ) funlist1 else break;
-  at = rbind(at1,at2)
-  model = list(bt,list(matlist,funlist),at);
-  
-  return(model)
-
+#design matrix not yet implemented
+JoinModels <- function(...){
+   modellist = list(...);
+   modellist = lapply(modellist,tomodelform);
+   nmod = length(modellist);
+   if(nmod==1) return(modellist);
+   
+   btlist = lapply(modellist,function(x){x[[1]]$bt});
+   matlistlist = lapply(modellist,function(x){x[[1]]$coeff$matlist});
+   funlistlist = lapply(modellist,function(x){x[[1]]$coeff$funlist});
+   atlist = lapply(modellist,function(x){x[[1]]$at});
+   
+   bt = do.call("DirectSum",btlist);
+   at = do.call("rbind",atlist);
+   
+   rr=list();
+   for(i in 1:length(matlistlist[[1]])) rr[[i]] = lapply(matlistlist,function(x){x[[i]]})
+   matlist = lapply(rr,function(x){do.call("DirectSum",x)})
+   
+   funlist = funlistlist[[1]];
+   
+   joinmod = list()
+   joinmod$bt = bt
+   joinmod$coeff$matlist = matlist
+   joinmod$coeff$funlist = funlist
+   joinmod$at = at
+   
+   return(joinmod)
 }
+#a=matrix(1:12,4,3);b=matrix(rep(2,6),3,2);m1=list(a,"log",b);JoinModels(m1,m1,m1)
+
 
 
 ###############################################################################################
@@ -748,8 +908,8 @@ RecordsToFrequencies <- function(data){ c(t(ftable(data))) }
 # 4. Required functions
 Gfunction <- function( m, coeff ){
 # requires functions (1) phi, (2) dphi,
-  matlist <- coeff[[1]]      # read design matrices from the model
-  funlist <- coeff[[2]]     # read algebraic operations from the model
+  matlist <- coeff$matlist     # read design matrices from the model
+  funlist <- coeff$funlist     # read algebraic operations from the model
   q <- length(funlist)
   g <- list()
   g[["g.0"]] <- m
@@ -762,12 +922,12 @@ Gfunction <- function( m, coeff ){
 
 gfunction <- function(m,coeff){
 # requires functions (1) phi
-    matlist <- coeff[[1]]     # read design matrices from the model
-    funlist <- coeff[[2]]     # read algebraic operations from the model
+    matlist <- coeff$matlist     # read design matrices from the model
+    funlist <- coeff$funlist     # read algebraic operations from the model
     q <- length(funlist)
     g <- list()
     g[["g.0"]] <- m
-    for (i in 1:q) g[[i+1]] <- phi(matlist[[q+1-i]], g[[i]], funlist[[q+1-i]])
+    for (i in 1:q) {g[[i+1]] <- phi(matlist[[q+1-i]], g[[i]], funlist[[q+1-i]])}
     return( g[[q+1]] )
 }
 
@@ -814,45 +974,55 @@ pds <- function(n,m,lambda=1){
 # Printing statistics
 
 
-printalgorithmdetails = function(time,ite,convcrit){
-   cat("Time taken            = ",time," seconds","\n")
-   cat("Number of iterations  = ",ite,"\n") 
-   cat("Convergence criterion = ",convcrit,"\n")
+printalgorithmdetails = function(fit){
+   estmethod=switch(fit$Method,
+      "ML"="Maximum Likelihood",
+      "MDI"="Minimum Discrimination Information",
+      "GSK"="GSK");
+   cat(fit$Title,"\n")
+   cat("\n")
+   cat("Estimation method     = ",estmethod,"\n")
+   cat("Time taken            = ",fit$TimeTaken," seconds","\n")
+   cat("Number of iterations  = ",fit$NumberOfIterations,"\n") 
+   cat("Convergence criterion = ",fit$ConvergenceCriterion,"\n")
+}
+
+printbasicstatistics = function(stats,showeig,satmod){
+   if(satmod){
+       cat("Sample size = ",stats$SampleSize,"\n")
+       cat("Eigenvalues sample covariance matrix","\n")
+       cat("\t",stats$Eigenvalues,"\n")
+      } else
+   if (stats$Method=="ML") { 
+          cat("Loglikelihood ratio (G^2) = ",stats$LogLikelihoodRatio,"\n");
+          cat("Chi-square (X^2)          = ",stats$ChiSquare,"\n")} else if 
+      (stats$Method=="MDI"){ 
+          cat("Discrimination information = ",stats$DiscriminationInformation,"\n")
+          cat("Loglikelihood ratio (G^2)  = ",stats$LogLikelihoodRatio,"\n")} else if
+      (stats$Method=="GSK"){ 
+          cat("Wald statistic             = ",stats$WaldStatistic,"\n")}
+   if(!satmod){
+      cat("Degrees of freedom         = ",stats$DegreesOfFreedom,"\n")
+      cat("p-value     = ",stats$PValue,"\n")
+      cat("Sample size = ",stats$SampleSize,"\n")
+      cat("BIC         = ",stats$BIC,"\n")
+      if(showeig) {cat("\n"); cat("Eigenvalues of inverse covariance matrix of Lagrange multipliers: ", "\n", stats$Eigenvalues, "\n")}
+   }
 }
 
 
-printbasicstatistics = function(n,m,df,eig,showeig){
-   df = df[1]+df[2];
-   g2 = pds(n,m,0)
-   x2 = pds(n,m,1)
-   bic=g2-df*log(sum(n))
-   pval=signif(1-pchisq(g2,df),5)
-   cat("G^2         = ",g2,"\n")
-   cat("df          = ",df,"\n")
-   cat("p-value     = ",pval,"\n")
-   cat("Sample size = ",sum(n),"\n")
-   cat("X^2         = ",x2,"\n")
-   cat("BIC         = ",bic,"\n")
-   if(showeig) {cat("\n"); cat("Eigenvalues of inverse covariance matrix of Lagrange multipliers: ", "\n", eig, "\n")}
-}
+printadvancedstatistics = function( stats, satmod, ShowCorrelations ){
 
-printadvancedstatistics = function( obsval, fitval, covtheta, covresid, coeffdim, catlabels, satmod=FALSE, ShowCorrelations=FALSE ){
+    obsval   = stats$ObservedCoefficients 
+    fitval   = stats$FittedCoefficients 
+    se       = stats$CoefficientStandardErrors
+    zscores  = stats$CoefficientZScores
+    adjres   = stats$CoefficientAdjustedResiduals
+    cormat   = stats$CoefficientCorrelationMatrix
+    coeffdim = stats$CoefficientDimensions
+    varlabels = stats$CoefficientTableVariableLabels
+    catlabels = stats$CoefficientTableCategoryLabels
 
-    var <- diag(covtheta)
-    fitval[abs(fitval) < 1e-20] <- 0
-    var[var <= 0] <- 1e-80
-    se <- sqrt(var)
-    zscores <- fitval / se
-    vr <- diag(covresid);
-    vr[vr <= 0] <- 1e-80
-    adjres <- if(satmod) 0 else (obsval - fitval)/sqrt(vr)
-
-    se[se < 1e-39] <- 0
-    zscores[abs(zscores) < 1e-39] <- 0
-    adjres[abs(adjres) < 1e-39] <- 0
-
-    cormat = if(length(se)==1) 1 else diag(1/se) %*% covtheta %*% diag(1/se)
-    
     coeffdim  = rev(coeffdim);
     catlabels = rev(catlabels);
 
@@ -869,11 +1039,6 @@ printadvancedstatistics = function( obsval, fitval, covtheta, covresid, coeffdim
           cat("   Ese of observed values       = ",se,sep="\t","\n");
           cat("   Observed values / std errors = ",zscores,sep="\t","\n")} }
     else {    
-#       catlabels=vector("list",nvar)  #labels for categories
-#       for(i in 1:nvar){ 
-#          for(j in 1:coeffdim[[i]]) {catlabels[[i]][[j]]=
-#             if(is.list(varlabels[[i]])) paste(varlabels[[i]][[1]],"=",varlabels[[i]][[2]][[j]],sep="")
-#             else paste(varlabels[[i]],"=",j,sep="")}}
        if(!satmod) {
           cat("   Observed values: ","\n");  print(array(obsval,coeffdim,dimnames=catlabels))
           cat("   Fitted values: ","\n");  print(array(fitval,coeffdim,dimnames=catlabels))
@@ -905,207 +1070,44 @@ tocatlabels = function(lab,dim){
 #tocatlabels(c(1,2),c(2,2))
 #tocatlabels(list(list("G",c("men","women")),"T"),c(2,3))
 
+printThetaAndBeta = function(stats, showcoeffs, showpars, ShowCorrelations, ParameterCoding, satmod, modeltype="Manifest"){
 
-printThetaAndBeta = function(obsval, fitval, covtheta, covresid, coeffdim, varlabels, showcoeffs, showpars,satmod=FALSE, ShowCorrelations=FALSE,modeltype="Manifest",ParameterCoding="Effect"){
-
-   coeffdim  = if(isTRUE(coeffdim=="Automatic")) c(length(obsval)) else coeffdim;
+   obsval = stats$ObservedCoefficients 
+   fitval = stats$FittedCoefficients 
+   coeffdim = stats$CoefficientDimensions
+   varlabels = stats$CoefficientTableVariableLabels
+   catlabels = stats$CoefficientTableCategoryLabels
    nvar=length(coeffdim)
-   varlabels = if(isTRUE(varlabels=="Automatic")) apply(rbind(c(1:nvar)),1,function(x){paste("Var",x,sep="")}) else varlabels;
-   catlabels=tocatlabels(varlabels,coeffdim);
-
-   varlabels1 = list();   #varlabels1 contains only variable labels, not category labels
-   for(i in 1:nvar){ varlabels1[[i]] = if(is.list(varlabels[[i]])) varlabels[[i]][[1]] else varlabels[[i]] }
-   varlabels1 = as.character(varlabels1)
-
 
    if(showcoeffs){
       cat("Statistics for the coefficients: ", "\n")
-      cat("Variables = ",varlabels1," (dim = ",coeffdim,")","\n",sep="")
-      printadvancedstatistics(obsval, fitval, covtheta, covresid, coeffdim, catlabels, satmod=satmod, ShowCorrelations=ShowCorrelations)
+      cat("Variables = ",varlabels," (dim = ",coeffdim,")","\n",sep="")
+      printadvancedstatistics(stats, satmod, ShowCorrelations)
    }
 
-   printBeta = function(efflab,effcatlab,effdim,obsval,fitval,covtheta,covresid,coeffdim,varlabels,ParameterCoding="Effect"){
-      effmat = betamat(varlabels,efflab,coeffdim,ParameterCoding);
-      obsval2   = effmat %*% obsval;
-      fitval2   = effmat %*% fitval
-      covtheta2 = effmat %*% covtheta %*% t(effmat)
-      covresid2 = if(satmod) 0 else effmat %*% covresid %*% t(effmat)
+   printBeta = function(beta){
+      efflab = beta$CoefficientTableVariableLabels
+      effdim = beta$CoefficientDimensions
       cat("Effect = ");cat(as.character(efflab,sep=","),sep=",");cat(" (dim = ");cat(effdim,sep=",");cat(")","\n",sep="")
-      printadvancedstatistics(obsval2, fitval2, covtheta2, covresid2, effdim, effcatlab, satmod=satmod, ShowCorrelations=ShowCorrelations)  
+      printadvancedstatistics(beta, satmod, ShowCorrelations)  
    }
 
    if(showpars){
       cat("\n")
       cat("Statistics for the parameters: ", "\n")
       subvar = allsubsets(c(1:nvar));
-      for(i in 1:length(subvar)) printBeta(varlabels1[subvar[[i]]],catlabels[subvar[[i]]],coeffdim[subvar[[i]]],obsval,fitval,covtheta,covresid,coeffdim,varlabels1,ParameterCoding=ParameterCoding)
+      for(i in 1:length(subvar)) printBeta(stats$Parameters[[i]])
    }
 
 }
 
 
+
+
 ###############################################################################################
 ###############################################################################################
 ###############################################################################################
-# Fitting procedures
-
-margmodfit = function(n, model, 
-    PrintStatistics=TRUE,
-    MaxSteps=1000,MaxError=1e-25,StartingPoint="Automatic",MaxInnerSteps=2,ShowProgress=TRUE,CoefficientDimensions="Automatic",Labels="Automatic",
-    ShowCoefficients=TRUE,ShowParameters=FALSE, ShowCorrelations=FALSE, Title="", ParameterCoding="Effect", MaxStepSize=1){
-
-    eps= 10e-80;
-    starttime = proc.time()[3]
-
-    bt    <- model[[1]][[1]]
-    coeff <- model[[1]][[2]]
-    at    <- model[[1]][[3]]    
-    d     <- model[[1]][[4]]    
-    x     <- model[[2]]
-        
-    step <- 1             # Initial step size (no modification yet)
-    k <- 0                # index for iterations k = 1, 2, .... . k = 1 is initial iterration
-    w <- list()
-    H <- matrix()
-
-    m  <- if(isTRUE(StartingPoint=="Automatic") && !is.matrix(x) ){ n + 1e-3 } 
-          else if(is.matrix(x)) rep(sum(n)/length(n),length(n))
-          else StartingPoint        # initial estimates for expected frequencies
-    m  <- as.numeric(m)
-    logm <- log(m)                      # logarithm of initial expected frequencies
-    atm  <- if(data.class(at)!="matrix") m else at %*% m
-    g  <- matrix(gfunction(atm,coeff))  # initial values of g in a C x 1 vector
-    Gt <- if(data.class(at)!="matrix") Gfunction(atm,coeff) else Gfunction(atm,coeff) %*% at   # initial values of G in an L x C matrix
-    h  <- bt %*% g - d
-    Ht <- bt %*% Gt
-    H  <- t(Ht)
-    df <- nrow(bt)                      # number of constraints
-    mu <- matrix(0,df,1)                # initial estimates of Lagrange multipliers in a C x 1 vector
-    error <- 100000                     # initial values of error
-
-    if(!isTRUE(!ShowProgress)) cat("Iteration      ","G^2             ","Error","\n")
-
-    # Iteration = 1, ..., k
-    repeat{
-        k <- k + 1
-        atm <- if(data.class(at)!="matrix") m else at %*% m
-        g <- gfunction(atm,coeff)
-        Gt <- if(data.class(at)!="matrix") Gfunction(atm,coeff) else Gfunction(atm,coeff) %*% at
-        h <- bt %*% g - d
-        Ht <- (bt %*% Gt )
-        H <- t(Ht)
-        HDH <- Ht %*% ( m * H )
-        lambda <- - solve( HDH, Ht %*% (n - m) + h )
-        loglinincr = if(isTRUE(x=="None")) 0 else x %*% (solve(t(x) %*% (m * x)) %*% (t(x) %*% (n - m))) - (n + eps)/(m + eps) + 1
-        incr <- (n - m)/m + H %*% lambda + loglinincr
-        logm <- logm + MaxStepSize*incr
-        m <- exp(logm)
-        m <- as.numeric(m)
-        m[m < 1e-80] <- 1e-80
-        error <-  t(incr) %*% (m * incr)
-        if( isTRUE(ShowProgress) || (data.class(ShowProgress)=="numeric" && isTRUE(k%%ShowProgress==0)) ){ cat(k,"             ",pds(n,m,0),"         ",error,"\n") }
-        if ( k >= MaxSteps || abs(error) < MaxError ) break
-    }
-
-    endtime <- proc.time()[3]
-
-    if(PrintStatistics){
-        print(Title)
-        cat("\n")
-        printalgorithmdetails(endtime-starttime,k,error)
-        cat("\n")
-        coeff = model[[1]][2:3]
-        ModelStatistics(n, m, model, coeff, CoefficientDimensions=CoefficientDimensions, Labels=Labels, 
-           ShowCoefficients=ShowCoefficients,ShowParameters=ShowParameters, ShowCorrelations=ShowCorrelations, ParameterCoding=ParameterCoding )
-    }
-    
-    return(m)
-}
-
-
-margmodfitEM <- function( n, latdim, model, MaxOuterSteps=1000, MaxError=1e-20, MaxInnerSteps=2, ShowProgress=TRUE,CoefficientDimensions="Automatic",Labels="Automatic",
-     ShowCoefficients=TRUE,ShowParameters=FALSE, ShowCorrelations=FALSE, Title="", MaxStepSize=1, ParameterCoding="Effect"){
-
-    starttime = proc.time()[3]
-    eps <- 1e-80
-    k <- 0
-    collapse = function(q){ apply( matrix( q, nrow = latdim ), 2, sum ) }
-    expand = function(q){ rep(q, each=latdim ) }
-    v <- c(1:(length(n)*latdim))
-    mhat = expand(n/latdim)
-    mhat = mhat + sum(n)/100/length(mhat)  #startingpoint
-
-    cat("Iteration      ","G^2             ","Error","\n")
-
-    repeat{ k <- k + 1
-        nhat <- mhat * expand( (n+eps) / (collapse(mhat)+eps) ) # E-step
-        newmhat <- margmodfit( nhat, model, MaxSteps=MaxInnerSteps, StartingPoint=mhat, ShowProgress=FALSE, PrintStatistics=FALSE, MaxStepSize=MaxStepSize )  # M-step
-        error <- sum( abs( mhat - newmhat ) )
-        mhat <- newmhat
-        cat("  ",k,"             ",pds(nhat,newmhat,0),"         ",error,"\n")
-        if ( k >= MaxOuterSteps || abs(error) < MaxError ) break
-    }
-
-    endtime <- proc.time()[3]
-
-    print(Title)
-    cat("\n")
-    printalgorithmdetails(endtime-starttime,k,error)
-    cat("\n")
-    coeff = model[[1]][2:3]
-    ModelStatistics(n, mhat, model, coeff, CoefficientDimensions=CoefficientDimensions, Labels=Labels, ShowCoefficients=ShowCoefficients,
-       ShowParameters=ShowParameters, ShowCorrelations=ShowCorrelations, ParameterCoding=ParameterCoding )
-
-    return(mhat)
-}
-
-
-gsk <- function( n, model, CoefficientDimensions="Automatic", Labels="Automatic", Title="" ){
-
-    model = tomodelform(model)
-    bt    <- model[[1]][[1]]
-    coeff <- model[[1]][[2]]
-    at    <- model[[1]][[3]]    
-    d     <- model[[1]][[4]]    
-    x     <- model[[2]]
-
-    atn <- if(data.class(at)!="matrix") n else at %*% n
-
-    h  <- bt %*% gfunction(atn,coeff) - d
-    Gt <- if(data.class(at)!="matrix") Gfunction(atn,coeff) else Gfunction(atn,coeff) %*% at
-    Ht <- (bt %*% Gt )
-
-    H <- t(Ht)
-    a <- t(at)
-    G <- t(Gt)
-    H <- t(Ht)
-
-    GDG <- Gt %*% (n * G) 
-    GDH <- Gt %*% (n * H)
-    HDH <- Ht %*% (n * H)
-    
-    df <- length(h)
-    waldstat <- h %*% solve( HDH, h )
-    bic <- waldstat - df * log( sum(n) )
-    pval <- signif(1-pchisq(waldstat,df),5)
-    eig = eigen( HDH, only.value = T )$values;
-
-    print(Title)
-    cat("\n")
-    cat("Wald statistic = ",waldstat,"\n")
-    cat("df             = ",df,"\n")
-    cat("p-value        = ",pval,"\n")
-    cat("Sample size    = ",sum(n),"\n")
-    cat("BIC            = ",bic,"\n")
-    cat("Eigenvalues: ",eig,"\n")
-
-    covresid <- GDH %*% solve(HDH) %*% t(GDH) 
-    covtheta <- GDG - covresid
-    obsval <- gfunction(atn,coeff)
-    fitval <- covtheta %*% solve( GDG, obsval )
-
-    printadvancedstatistics( obsval, fitval, covtheta, covresid, CoefficientDimensions, Labels )
-}
+# Functions relating to model specification
 
 
 #puts marginal model into standard form (bt,theta,at,d)
@@ -1120,102 +1122,125 @@ tomargmodform = function(margmodel){
          margmodel = margmodel[-lm]
          }
    else d = "None";
-      
-   margmodel = 
-   
+
+   mm = list()  #marginal model in standard form
+
    #case 1: single matrix is given
    if( data.class(margmodel)=="matrix" ){
-      at = margmodel;
-      id = diag(nrow(at));
-      bt = diag(nrow(at));
-      list( bt, list( list(id), list("identity") ), at)
-   }
+      mm$at = margmodel;
+      id = diag(nrow(mm$at));
+      mm$bt = diag(nrow(mm$at));
+      mm$coeff$matlist = list(id)
+      mm$coeff$funlist = list("identity") }
+   else if(length(margmodel)>4) {print("Error in model specification: length of model should be at most four, in the form list(bt,coeff,at,d) representing the equation bt.coeff(at.pi)=d");break}
+
+#   if(length(margmodel)==4) {print("Error in model specification: fourth element should be a numeric constant vector d from the formula bt.coeff(at.pi)=d ");break}
    
    #case 2: form is {bt,Log,at}
    else if(length(margmodel) == 3 && data.class(margmodel[[2]])=="character"){
-      bt = margmodel[[1]];
-      at = margmodel[[3]];
-      if(ncol(bt)!=nrow(at)) {cat("Incompatible matrix dimensions in model specification",dim(bt),"and",dim(at),"\n");break;};
-      coeff = list( list(diag(ncol(bt))),list(margmodel[[2]]) );
-      list(bt, coeff, at)
+      mm$bt = margmodel[[1]];
+      mm$at = margmodel[[3]];
+      if(ncol(mm$bt)!=nrow(mm$at)) {cat("Incompatible matrix dimensions in model specification",dim(mm$bt),"and",dim(mm$at),"\n");break;};
+      mm$coeff$matlist = list(diag(ncol(mm$bt)))
+      mm$coeff$funlist = list(margmodel[[2]])
    }
    
    #case 3: form is standard: {bt,coeff,at}, with coeff={matlist,funlist}
-   else if(length(margmodel) == 3 && !data.class(margmodel[[2]])=="character" ) margmodel
+   else if(length(margmodel) == 3 && !data.class(margmodel[[2]])=="character" ) {
+      mm$bt = margmodel[[1]];
+      mm$coeff$matlist = margmodel[[2]][[1]];
+      mm$coeff$funlist = margmodel[[2]][[2]];
+      mm$at = margmodel[[3]];
+   }
    
    #hereafter: length[margmodel]=2 ################################
    
    #form is eg {Log,at}
-   else if(data.class(margmodel[[1]])=="character" && data.class(margmodel[[2]])=="matrix"){id=diag(nrow(margmodel[[2]]));list(id,list(list(id),list(margmodel[[1]])),margmodel[[2]])}
+   else if(data.class(margmodel[[1]])=="character" && data.class(margmodel[[2]])=="matrix"){
+      id=diag(nrow(margmodel[[2]]));
+      mm$bt = id;
+      mm$coeff$matlist = list(id);
+      mm$coeff$funlist = list(margmodel[[1]]);
+      mm$at = margmodel[[2]];
+   }
 
    #form is {bt,Log}
-   else if(data.class(margmodel[[2]])=="character" && data.class(margmodel[[1]])=="matrix"){id=diag(ncol(margmodel[[1]]));list(margmodel[[1]],list(list(id),list(margmodel[[2]])),id)}
-
+   else if(data.class(margmodel[[2]])=="character" && data.class(margmodel[[1]])=="matrix"){
+      id=diag(ncol(margmodel[[1]]));
+      mm$bt = margmodel[[1]];
+      mm$coeff$matlist = list(id);
+      mm$coeff$funlist = list(margmodel[[2]]);
+      mm$at = id;
+   }
+    
    
    #form is {bt,coeff}
    else if( data.class(margmodel[[1]])=="matrix" && length(margmodel[[2]]) == 2 ) list( margmodel[[1]], margmodel[[2]], "None" )
    
    #form is {coeff,None}
    else if( isTRUE(margmodel[[2]] == "None") && length(margmodel[[1]]) == 2 ){
-      coeff = margmodel[[1]];
-      df = nrow((coeff[[1]][[1]]));
-      bt = diag(df);
-      list( bt, coeff, "None" )
+      mm$coeff$matlist = margmodel[[1]][[1]];
+      mm$coeff$funlist = margmodel[[1]][[2]];
+      df = nrow(mm$coeff$matlist[[1]]);
+      mm$bt = diag(df);
+      mm$at = "None"
    } 
    
    #form is {coeff,at}
    else if( data.class(margmodel[[2]])=="matrix" && length(margmodel[[1]]) == 2 ){
-      coeff = margmodel[[1]];
-      at = margmodel[[2]];
-      df = nrow((coeff[[1]][[1]]));
-      bt = diag(df);
-      list( bt, coeff, at )
+      mm$coeff$matlist = margmodel[[1]][[1]];
+      mm$coeff$funlist = margmodel[[1]][[2]];
+      mm$at = margmodel[[2]];
+      df = nrow((mm$coeff$matlist[[1]]));
+      mm$bt = diag(df);
    }
    
    #form is coeff with coeff={matlist,funlist}
    else if( length(margmodel) == 2 && data.class(margmodel[[1]][[1]])=="matrix" && data.class(margmodel[[2]])=="list" ){
-      coeff = margmodel;
-      df = nrow((coeff[[1]][[1]]));
-      bt = diag(df);
-      list( bt, coeff, "None" )
+      mm$coeff$matlist = margmodel[[1]];
+      mm$coeff$funlist = margmodel[[2]];
+      k=length(mm$coeff$matlist);k=length(mm$coeff$matlist[[k]][1,])
+      mm$at = diag(k)
+      df = nrow((mm$coeff$matlist[[1]]));
+      mm$bt = diag(df);
    }
    
    else{ cat("Cannot recognize model specification", margmodel); break}
 
    #now homogenize margmodel specification
-   matlist = margmodel[[2]][[1]];
-   funlist = margmodel[[2]][[2]];
-   k = ncol(matlist[[length(matlist)]]);
+   k = ncol(mm$coeff$matlist[[length(mm$coeff$matlist)]]);
    prob <- spec.prob(k);
-   matlist <- c(matlist, prob[[1]]);
-   funlist <- c(funlist, prob[[2]]);
-   coeff <- list(matlist, funlist);
-   margmodel[[2]] = coeff;
+   mm$coeff$matlist <- c(mm$coeff$matlist, prob[[1]]);
+   mm$coeff$funlist <- c(mm$coeff$funlist, prob[[2]]);
+
    #add a constant vector d
-   d = if( isTRUE(d=="None") ) rep(0,nrow(margmodel[[1]])) else d;
-   margmodel[[4]] = d
+   d = if( isTRUE(d=="None") ) rep(0,nrow(mm$bt)) else d;
+   mm$d=d
 
    #check if matrix dimensions are correct
    dim0 = list(c(0,length(d)));
-   dimfirst = list(dim(margmodel[[1]]));
-   dimlast  = list(dim(margmodel[[3]]));
-   dimlist  = lapply(margmodel[[2]][[1]],dim);
+   dimfirst = list(dim(mm$bt));
+   dimlast  = list(dim(mm$at));
+   dimlist  = lapply(mm$coeff$matlist,dim);
    dimlist  = append(dimlist,dimfirst,after=0);
    dimlist  = append(dimlist,dim0,after=0);
    dimlist  = if(length(dimlast[[1]])>0) append(dimlist,dimlast) else dimlist
    for(i in 2:length(dimlist)){if(dimlist[[i-1]][[2]]!=dimlist[[i]][[1]]){print("Incompatible matrix dimensions. Dimensions are: ");print(dimlist);stop()}}
    
-   return(margmodel)
+   return(mm)
 }
 
 #mod=list(matrix(1:6,2,3),"log",matrix(1:12,3,4),c(1,2))
-#tomargmodform(mod)
+#tomargmodform2(mod)
 
 #margmodel="None"
-#tomargmodform(margmodel)
-#margmodel=rbind(c(1,2))
+#tomargmodform2(margmodel)
+
+#mod=rbind(c(1,2))
+#tomargmodform2(mod)
+
 #margmodel=list( rbind(c(1,2)), "log", rbind(c(1,2)) )
-#tomodelform(margmodel)
+#tomodelform2(margmodel)
 
 
 
@@ -1253,19 +1278,20 @@ modeldf = function(model,n){
    latdim = tblsize / length(n)
    margmod = model[[1]];
    x = model[[2]];
-   df1 = if (isTRUE(margmod == "None")) 0 else nrow(margmod[[1]])
+   df1 = if (isTRUE(margmod == "None")) 0 else nrow(margmod$bt)
    df2 = if (isTRUE(x == "None")) 0 else max(0, tblsize/latdim - ncol(x));
    c(df1,df2)
    }
 
 tablesize = function(model) {
    if(length(model)==2){
-      if      (!isTRUE(model[[2]] == "None")) nrow(model[[2]])
-      else if (!isTRUE(model[[1]][[3]] == "None")) ncol(model[[1]][[3]])
-      else    {k=length(model[[1]][[2]][[1]]); ncol(model[[1]][[2]][[1]][[k]])}  }
-   else 
-      if(isTRUE(model[[3]]=="None")){k=length(model[[2]][[1]]); ncol(model[[2]][[1]][[k]])}
-      else ncol(model[[3]])
+      margmod = model[[1]];   x = model[[2]];
+      if      (!isTRUE(x == "None")) nrow(x)
+      else if (!isTRUE(margmod$at == "None")) ncol(margmod$at)
+      else    {k=length(margmod$coeff$matlist); ncol(margmod$coeff$matlist[[k]])}  }
+   else  #model is of the form margmod
+      if(isTRUE(model$at=="None")){k=length(model$coeff$matlist); ncol(model$coeff$matlist[[k]])}
+      else ncol(model$at)
 }
 
 #mod=list(matrix(1:2,2,2),"log",matrix(1:6,2,3))
@@ -1274,78 +1300,308 @@ tablesize = function(model) {
 #tablesize(mod2)
 
 
-MarginalModelFit = function(dat, model, MaxSteps=1000, MaxStepSize=1, MaxError=1e-20, StartingPoint="Automatic", MaxInnerSteps=2, ShowProgress=TRUE, CoefficientDimensions="Automatic",
-    Labels="Automatic",ShowCoefficients=TRUE,ShowParameters=FALSE, ParameterCoding="Effect", ShowCorrelations=FALSE, Method="ML", Title="" ){
 
-#    n   = if(data.class(n)=="numeric") n else {dim = 1 + apply(n,2,max) - apply(n,2,min); RecordsToFrequencies(n)};
-    n  = if(data.class(dat)=="numeric") dat else c(t(ftable(dat)));
-    model = tomodelform(model); #put model in standard form: "list(margmod,x)"
-    latdim = tablesize(model) / length(n)
+###############################################################################################
+###############################################################################################
+###############################################################################################
+# Fitting procedures
 
-    switch( Method, 
-        "ML" = 
-            if      ( latdim != floor(latdim) )  cat("Error: unable to determine latent dimension","\n") 
-            else if ( latdim == 1 )              margmodfit( n, model, MaxSteps=MaxSteps, MaxStepSize=MaxStepSize, StartingPoint=StartingPoint, MaxInnerSteps=MaxInnerSteps, ShowProgress=ShowProgress, 
-                                                    ShowCoefficients=ShowCoefficients, ShowParameters=ShowParameters, Labels=Labels, CoefficientDimensions=CoefficientDimensions, Title=Title, ParameterCoding=ParameterCoding )
-            else                                 margmodfitEM( n, latdim, model, MaxOuterSteps=MaxSteps, MaxInnerSteps=MaxInnerSteps, MaxError=MaxError, Title=Title, ParameterCoding=ParameterCoding ),
-        "GSK" = gsk( n, model, Title=Title ) 
-    )
+margmodfit = function(n, model, MaxSteps=1000, MaxError=1e-25, StartingPoint="Automatic", ShowProgress=TRUE, MaxStepSize=1,Method="ML"){
+
+    eps= 1.e-80;
+    starttime = proc.time()[3]
+
+    margmod = model[[1]]
+    x     <- model[[2]]
+    bt    <- margmod$bt
+    coeff <- margmod$coeff
+    at    <- margmod$at
+    d     <- margmod$d
+        
+    step <- 1             # Initial step size (no modification yet)
+    k <- 0                # index for iterations k = 1, 2, .... . k = 1 is initial iterration
+    w <- list()
+    H <- matrix()
+
+    m  <- if(isTRUE(StartingPoint=="Automatic") && !is.matrix(x) ){ n + 1e-3 } 
+          else if(is.matrix(x)) rep(sum(n)/length(n),length(n))
+          else StartingPoint        # initial estimates for expected frequencies
+    m  <- as.numeric(m)
+    logm <- log(m)                      # logarithm of initial expected frequencies
+    atm  <- if(data.class(at)!="matrix") m else at %*% m
+    g  <- matrix(gfunction(atm,coeff))  # initial values of g in a C x 1 vector
+    Gt <- if(data.class(at)!="matrix") Gfunction(atm,coeff) else Gfunction(atm,coeff) %*% at   # initial values of G in an L x C matrix
+    h  <- bt %*% g - d
+    Ht <- bt %*% Gt
+    H  <- t(Ht)
+    df <- nrow(bt)                      # number of constraints
+    mu <- matrix(0,df,1)                # initial estimates of Lagrange multipliers in a C x 1 vector
+    olderror <- 100000                  # initial values of error
+
+    if(!isTRUE(!ShowProgress)) cat("Iteration      ","step size      ","G^2             ","Error","\n")
+    olderror <- 1.e100;
+
+    # Iteration = 1, ..., k
+    repeat{
+        k <- k + 1
+        atm <- if(data.class(at)!="matrix") m else at %*% m
+        g <- gfunction(atm,coeff)
+        Gt <- if(data.class(at)!="matrix") Gfunction(atm,coeff) else Gfunction(atm,coeff) %*% at
+        h <- bt %*% g - d
+        Ht <- (bt %*% Gt )
+        H <- t(Ht)
+        HDH <- Ht %*% ( m * H )
+        ndivm <- (m+eps)/(n+eps)
+        dl = switch(Method,
+            "ML"  = n - m,        #derivative of multinomial likelihood wrt log(m)
+            "MDI" = -m*log(ndivm))#derivative of MDI criterion wrt log(m)
+        dl2 = switch(Method,
+            "ML"  = ndivm - 1,   #derivative of multinomial likelihood wrt m
+            "MDI" = -log(ndivm)) #derivative of MDI criterion wrt m
+        lambda <- - solve( HDH, Ht %*% dl + h )
+        loglinincr = if(isTRUE(x=="None")) 0 else x %*% (solve(t(x) %*% (m * x)) %*% (t(x) %*% dl)) - dl2
+        incr <- dl/m + H %*% lambda + loglinincr  #cannot replace dl/m by dl2 for some numerical reason
+        newerror <-  (t(incr) %*% (m * incr))[1]
+        errorratio = if(newerror==0.) 1 else sqrt(olderror/newerror);
+        newstep = if(errorratio<MaxStepSize && errorratio>.01*MaxStepSize) errorratio/2 else MaxStepSize; 
+        olderror = newerror;
+        logm <- logm + newstep*incr
+        m <- exp(logm)
+        m <- as.numeric(m)
+        m[m < 1e-80] <- 1e-80
+        if( isTRUE(ShowProgress) || (data.class(ShowProgress)=="numeric" && isTRUE(k%%ShowProgress==0)) ){ cat(k,"             ",newstep,"             ",pds(n,m,0),"         ",newerror,"\n") }
+        if ( k >= MaxSteps || abs(newerror) < MaxError ) break
+    }
+
+    fit=list();   fit$FittedFrequencies=m;  fit$ConvergenceCriterion=newerror;    fit$NumberOfIterations=k;    fit$TimeTaken <- proc.time()[3] - starttime
+    return(fit) 
 }
 
-SampleStatistics = function(dat, coeff, CoefficientDimensions="Automatic",
-    Labels="Automatic", ShowCoefficients=TRUE, ShowParameters=FALSE, ParameterCoding="Effect", ShowCorrelations=FALSE,  Title="" ){
 
-    eps <- 10e-80
+margmodfitEM <- function( n, latdim, model, maxoutersteps=1000, StartingPoint="Automatic", MaxError=1e-20, MaxInnerSteps=2, ShowProgress=TRUE, MaxStepSize=1){
 
-    n   = if(data.class(dat)=="numeric") dat else c(t(ftable(dat)));
-    coeff2 = tomargmodform(coeff); #yields list(bt,coeff,at)
-    bt = coeff2[[1]];
-    coeff = coeff2[[2]];
-    coeff[[1]] = c(list(bt),coeff[[1]]);
-    coeff[[2]] = c(list("identity"),coeff[[2]]);
-    at = coeff2[[3]];
+    starttime = proc.time()[3]
+    eps <- 1e-80
+    k <- 0
+    collapse = function(q){ apply( matrix( q, nrow = latdim ), 2, sum ) }
+    expand = function(q){ rep(q, each=latdim ) }
+    v <- c(1:(length(n)*latdim))
+    mhat = expand(n/latdim)
+    mhat = mhat + sum(n)/100/length(mhat)  #startingpoint
+
+    cat("Iteration      ","G^2             ","Error","\n")
+
+    repeat{ k <- k + 1
+        nhat <- mhat * expand( (n+eps) / (collapse(mhat)+eps) ) # E-step
+        newmhat <- margmodfit( nhat, model, MaxSteps=MaxInnerSteps, StartingPoint=mhat, ShowProgress=FALSE, MaxStepSize=MaxStepSize )$FittedFrequencies  # M-step
+        error <- sum( abs( mhat - newmhat ) )
+        mhat <- newmhat
+        if( isTRUE(ShowProgress) || (data.class(ShowProgress)=="numeric" && isTRUE(k%%ShowProgress==0)) ){ 
+             cat("  ",k,"             ",pds(n,collapse(newmhat),0),"         ",error,"\n") }
+        if ( k >= maxoutersteps || abs(error) < MaxError ) break
+    }
+
+    fit=list();   fit$FittedFrequencies=mhat;  fit$ConvergenceCriterion=error;    fit$NumberOfIterations=k;    fit$TimeTaken <- proc.time()[3] - starttime
+    return(fit) 
+}
+
+
+gsk <- function( n, model, CoefficientDimensions="Automatic", Labels="Automatic" ){
+
+    model = tomodelform(model)
+    margmod = model[[1]]
+    x     <- model[[2]]
+    bt    <- margmod$bt
+    coeff <- margmod$coeff
+    at    <- margmod$at
+    d     <- margmod$d
 
     atn <- if(data.class(at)!="matrix") n else at %*% n
-    Gt <- if(data.class(at)!="matrix") Gfunction( atn, coeff ) else  Gfunction( atn, coeff ) %*% at 
-    GDG <- Gt %*% (n * t(Gt))
 
-    print(Title)
-    cat("Sample size = ",sum(n),"\n")
-    eig = eigen( GDG, only.value = T )$values;
-    cat("Eigenvalues sample covariance matrix","\n")
-    cat("\t",eig,"\n")
+    h  <- bt %*% gfunction(atn,coeff) - d
+    Gt <- if(data.class(at)!="matrix") Gfunction(atn,coeff) else Gfunction(atn,coeff) %*% at
+    Ht <- (bt %*% Gt )
+    H <- t(Ht)
 
-    covresid <- 0
-    covtheta <- GDG
-    obsval = gfunction( atn + eps, coeff )
-    cat("\n")
-    printThetaAndBeta( obsval, obsval, covtheta, covresid, CoefficientDimensions, Labels, ShowCoefficients, ShowParameters, satmod=TRUE, ShowCorrelations=ShowCorrelations, ParameterCoding=ParameterCoding )
+    GDG <- Gt %*% (n * t(Gt)) 
+    GDH <- Gt %*% (n * H)
+    HDH <- Ht %*% (n * H)
+    
+    covresid <- GDH %*% solve(HDH) %*% t(GDH) 
+    covtheta  <- GDG - covresid
+    obsval <- gfunction(atn,coeff)
+    fitval <- covtheta %*% solve( GDG, obsval )
+    adjres = (obsval - fitval)/sqrt(diag(covtheta))
+
+    stats = list()
+    stats$Method = "GSK"
+    stats$LogLikelihoodRatio = 0
+    stats$DegreesOfFreedom <- length(h)
+    stats$WaldStatistic <- h %*% solve( HDH, h )
+    stats$SampleSize <- sum(n)
+    stats$BIC  <- stats$WaldStatistic - stats$DegreesOfFreedom * log( sum(n) )
+    stats$PValue <- signif(1-pchisq(stats$WaldStatistic,stats$DegreesOfFreedom),5)
+    stats$Eigenvalues = eigen( HDH, only.value = T )$values
+    stats = c(stats,coefficientstats(obsval,fitval,covtheta,covresid,CoefficientDimensions,Labels,FALSE))
+
+    return(stats)
+}
+#  model <- list( bt, coeff2, at, c(0.1) )
+#  m <- gsk(n,model)
+
+
+
+#parameters
+getBetas = function(efflab,effcatlab,effdim,obsval1,fitval1,covtheta1,covresid1,coeffdim,varlabels,satmod,noresid,ParameterCoding="Effect"){
+       effmat = betamat(varlabels,efflab,coeffdim,ParameterCoding);
+       obsval   = effmat %*% obsval1;
+       fitval   = effmat %*% fitval1
+       covtheta = effmat %*% covtheta1 %*% t(effmat)
+       covresid = if(satmod) 0 else effmat %*% covresid1 %*% t(effmat)
+
+       var <- diag(covtheta)
+       fitval[abs(fitval) < 1e-20] <- 0
+       var[var <= 0] <- 1e-80
+       se <- sqrt(var)
+       zscores <- fitval / se
+       if(noresid==1||isTRUE(covresid==list(0))) adjres=NULL else {
+          vr <- diag(covresid);
+          vr[vr <= 0] <- 1e-80
+          adjres <- if(is.null(obsval)||is.null(fitval)||isTRUE(vr==0)) 0 else (obsval - fitval)/sqrt(vr)
+          adjres[abs(adjres) < 1e-39] <- 0  }
+       zscores[abs(zscores) < 1e-39] <- 0
+       cormat = if(length(se)==1) 1 else diag(1/se) %*% covtheta %*% diag(1/se)
+
+       beta = list()
+       beta$ObservedCoefficients = obsval
+       beta$FittedCoefficients = fitval
+       beta$CoefficientStandardErrors = se
+       beta$CoefficientZScores = zscores
+       beta$CoefficientAdjustedResiduals = adjres
+       beta$CoefficientCovarianceMatrix = covtheta
+       beta$CoefficientCorrelationMatrix = cormat
+       beta$CoefficientAdjustedResidualsCovarianceMatrix = covresid
+       beta$CoefficientDimensions = effdim
+       beta$CoefficientTableVariableLabels = efflab
+       beta$CoefficientTableCategoryLabels = effcatlab
+
+       return(beta)
 }
 
 
-# model has standard form
-# coeffplus has the same form as model
+coefficientstats = function(obsval, fitval, covtheta, covresid, coeffdim, varlabels,satmod,eig="Automatic",ParameterCoding="Effect"){
+    noresid = prod(obsval==fitval)
 
-ModelStatistics <- function(dat, fitfreq, model, coeff, CoefficientDimensions="Automatic",
-    Labels="Automatic",ShowCoefficients=TRUE,ShowParameters=FALSE,Method="ML", ParameterCoding="Effect", ShowCorrelations=FALSE, Title="" ){
-    eps = 10.^-80
+    var <- diag(covtheta)
+    fitval[abs(fitval) < 1e-20] <- 0
+    var[var <= 0] <- 1e-80
+    se <- sqrt(var)
+    zscores <- fitval / se
+    if(noresid==1) adjres=NULL else {
+       vr <- diag(covresid);
+       vr[vr <= 0] <- 1e-80
+       adjres <- if(is.null(obsval)||is.null(fitval)||isTRUE(vr==0)) 0 else (obsval - fitval)/sqrt(vr)
+       adjres[abs(adjres) < 1e-39] <- 0  }
+    zscores[abs(zscores) < 1e-39] <- 0
+    cormat = if(length(se)==1) 1 else diag(1/se) %*% covtheta %*% diag(1/se)
 
-    mhat = fitfreq;
+    coeffdim = if(isTRUE(coeffdim=="Automatic")) c(length(obsval)) else coeffdim;
+    nvar=length(coeffdim)
+    varlabels = if(isTRUE(varlabels=="Automatic")) apply(rbind(c(1:nvar)),1,function(x){paste("Var",x,sep="")}) else varlabels;
+    catlabels=tocatlabels(varlabels,coeffdim);
+    if(prod(coeffdim)!=length(obsval)){print("Error: CoefficientDimensions incorrect, the product of the dimensions should equal the number of coefficients"); stop()}
+    if(length(coeffdim)!=length(varlabels)){print("Error: CoefficientDimensions has different length than Labels"); stop()}
+
+    varlabels1 = list();   #varlabels1 contains only variable labels, not category labels
+    for(i in 1:nvar){ varlabels1[[i]] = if(is.list(varlabels[[i]])) varlabels[[i]][[1]] else varlabels[[i]] }
+    varlabels1 = as.character(varlabels1)
+
+    nvar = length(varlabels)
+    subvar = allsubsets(c(1:nvar));
+    beta = list()
+    for(i in 1:length(subvar)) beta[[i]] = getBetas(varlabels1[subvar[[i]]],catlabels[subvar[[i]]],coeffdim[subvar[[i]]],obsval,fitval,covtheta,covresid,coeffdim,varlabels1,satmod,noresid,ParameterCoding=ParameterCoding)
+
+    stats = list()
+    stats$ObservedCoefficients = obsval
+    stats$FittedCoefficients = fitval
+    stats$CoefficientStandardErrors = se
+    stats$CoefficientZScores = zscores
+    stats$CoefficientAdjustedResiduals = adjres
+    stats$CoefficientCovarianceMatrix = covtheta
+    stats$CoefficientCorrelationMatrix = cormat
+    stats$CoefficientAdjustedResidualsCovarianceMatrix = covresid
+    stats$CoefficientDimensions = coeffdim
+    stats$CoefficientTableVariableLabels = varlabels1
+    stats$CoefficientTableCategoryLabels = catlabels
+    stats$Parameters = beta
+
+    class(stats) = "CMM"
+    return(stats)
+}
+
+
+"summary.CMM" = function(object,...,ShowCoefficients=TRUE,ShowParameters=FALSE,ShowCorrelations=FALSE,ParameterCoding="Effect",Title=""){
+    if(!is.null(object$Title)) print(object$Title)
+    satmod = if(object$LogLikelihoodRatio==0) TRUE else FALSE
+    printbasicstatistics(object,showeig=TRUE,satmod)
+    cat("\n")
+    printThetaAndBeta( object, ShowCoefficients, ShowParameters, ShowCorrelations, ParameterCoding, satmod )
+}
+
+
+getsamplestats = function(dat,coeff,CoefficientDimensions,ParameterCoding,Labels){
+    eps <- 1e-80
     n   = if(data.class(dat)=="numeric") dat else c(t(ftable(dat)));
-    model = tomodelform(model); #put model in standard form: "list(margmod,x)"
-    coeffplus = tomargmodform(coeff); #yields list(bt,coeff,at,d)
+    coeff = tomargmodform(coeff); #yields list(bt,coeff,at,d)
 
-    bt2    = coeffplus[[1]];
-    coeff2 = coeffplus[[2]];
-    at2    = coeffplus[[3]];
-    coeff2[[1]] = c(list(bt2),coeff2[[1]]);
-    coeff2[[2]] = c(list("identity"),coeff2[[2]]);
-    bt2    = diag(nrow(bt2));
+    atn <- if(data.class(coeff$at)!="matrix") n else coeff$at %*% n
+    Gt <- if(data.class(coeff$at)!="matrix") Gfunction( atn, coeff$coeff ) else  Gfunction( atn, coeff$coeff ) %*% coeff$at 
+    GDG <- Gt %*% (n * t(Gt))
 
-    bt     = model[[1]][[1]];
-    coeff  = model[[1]][[2]];
-    at     = model[[1]][[3]];   
-    x      = model[[2]];
+    stats = list()
+    stats$Eigenvalues = eigen( GDG, only.value = T )$values;
+    stats$SampleSize <- sum(n)
+    stats$LogLikelihoodRatio = 0
+
+    covresid <- NULL
+    covtheta <- GDG
+    obsval = gfunction( atn + eps, coeff$coeff )
+    cat("\n")
+    stats = c(stats,coefficientstats( obsval, obsval, covtheta, covresid, CoefficientDimensions, Labels, satmod=TRUE, ParameterCoding=ParameterCoding ))
+}
+
+SampleStatistics = function(dat, coeff, CoefficientDimensions="Automatic", Labels="Automatic", ShowCoefficients=TRUE, ParameterCoding="Effect", 
+                                ShowParameters=FALSE, ShowCorrelations=FALSE,  Title="" ){
+    stats = getsamplestats(dat,coeff,CoefficientDimensions,ParameterCoding,Labels)
+    class(stats) = "CMM"
+    summary(stats, ShowParameters=ShowParameters, ShowCorrelations=ShowCorrelations, ParameterCoding=ParameterCoding)
+    return(stats)
+}
+
+
+getbasicstatistics = function(n,manmhat,df,eig){
+   stats = list()
+   stats$SampleSize = sum(n);
+   stats$DegreesOfFreedom = df[1]+df[2];
+   stats$LogLikelihoodRatio = pds(n,manmhat,0)
+   stats$ChiSquare = pds(n,manmhat,1)
+   stats$DiscriminationInformation = pds(n,manmhat,-1)
+   stats$BIC = stats$LogLikelihoodRatio - stats$DegreesOfFreedom * log(sum(n))
+   stats$PValue = signif(1-pchisq(stats$LogLikelihoodRatio,stats$DegreesOfFreedom),5)
+   stats$Eigenvalues = eig
+   stats$ManifestFittedFrequencies = manmhat
+   return(stats)
+}
+
+getmodelstats = function(dat, mhat, model, coeff, CoefficientDimensions, Labels, Method, satmod=FALSE, ParameterCoding="Effect"){
+    eps = 1e-80
+    stats = list()
+    stats$Method = Method
+    mm=coeff
+
+    n   = if(data.class(dat)=="numeric") dat else c(t(ftable(dat)));
+
+    margmod = model[[1]]
 
     latdim = length(mhat) / length(n);
     collapse = function(q){ apply( matrix( q, nrow = latdim ), 2, sum ) }
@@ -1353,10 +1609,11 @@ ModelStatistics <- function(dat, fitfreq, model, coeff, CoefficientDimensions="A
     nhat <- if(latdim==1) n else mhat * expand( (n+eps) / (collapse(mhat)+eps) ) 
     manmhat = if(latdim == 1) mhat else collapse(mhat);
 
-    Gt <- if(data.class(at2)!="matrix") bt2 %*% Gfunction( mhat, coeff2 ) else bt2 %*% Gfunction( at2 %*% mhat, coeff2 ) %*% at2
-    Ht <- if(data.class(at)!="matrix")  bt  %*% Gfunction( mhat, coeff )  else bt  %*% Gfunction( at  %*% mhat, coeff )  %*% at
-    obsval <- if(data.class(at)!="matrix") gfunction( nhat, coeff2) else gfunction( at %*% nhat, coeff2)
-    fitval <- if(data.class(at)!="matrix") gfunction( mhat, coeff2) else gfunction( at %*% mhat, coeff2)
+    Gfun = if(data.class(mm$at)!="matrix") Gfunction( mhat, mm$coeff ) else Gfunction( mm$at %*% mhat, mm$coeff ) %*% mm$at
+    Gt   = if(is.null(mm$bt)) Gfun else mm$bt %*% Gfun
+    Ht <- if(data.class(margmod$at)!="matrix")  margmod$bt  %*% Gfunction( mhat, margmod$coeff )  else margmod$bt  %*% Gfunction( margmod$at  %*% mhat, margmod$coeff )  %*% margmod$at
+    obsval <- if(data.class(mm$at)!="matrix") gfunction( nhat, mm$coeff) else gfunction( mm$at %*% nhat, mm$coeff)
+    fitval <- if(data.class(mm$at)!="matrix") gfunction( mhat, mm$coeff) else gfunction( mm$at %*% mhat, mm$coeff)
 
     GDG <- Gt %*% (mhat * t(Gt)) 
     GDH <- Gt %*% (mhat * t(Ht))
@@ -1365,77 +1622,63 @@ ModelStatistics <- function(dat, fitfreq, model, coeff, CoefficientDimensions="A
     covtheta <- GDG - covresid
     eig = eigen( HDH, only.value = T )$values;
     df = modeldf(model,n)
-    print(Title)
-    printbasicstatistics(n,manmhat,df,eig,TRUE)
-    cat("\n")
 
-    modeltype = if(latdim==1) "Manifest" else "Latent"
-    printThetaAndBeta( obsval, fitval, covtheta, covresid, CoefficientDimensions, Labels, ShowCoefficients, ShowParameters, ShowCorrelations=ShowCorrelations, modeltype=modeltype, ParameterCoding=ParameterCoding )
+    stats = c(stats,getbasicstatistics(n,manmhat,df,eig))
+    stats = c(stats,coefficientstats( obsval, fitval, covtheta, covresid, CoefficientDimensions, Labels, satmod, ParameterCoding=ParameterCoding ))
+    return(stats)
+}
+
+ModelStatistics <- function(dat, fitfreq, model, coeff, CoefficientDimensions="Automatic",
+    Labels="Automatic",Method="ML",ShowCoefficients=TRUE,ShowParameters=FALSE, ParameterCoding="Effect", ShowCorrelations=FALSE, Title="" ){
+    
+    stats = if(isTRUE(model=="SaturatedModel")) 
+                    getsamplestats(dat,coeff,CoefficientDimensions,ParameterCoding,Labels)
+            else {
+                    model = tomodelform(model); 
+                    coeff = tomargmodform(coeff); #yields list(bt,coeff,at,d)
+                    getmodelstats(dat,fitfreq,model,coeff,CoefficientDimensions,Labels,Method)}
+    class(stats) = "CMM"
+    summary(stats,ShowCoefficients=ShowCoefficients,ShowParameters=ShowParameters, ParameterCoding=ParameterCoding, ShowCorrelations=ShowCorrelations)
+    return(stats)
 }
 
 
+MarginalModelFit = function(dat, model, 
+    ShowSummary=TRUE,
+    MaxSteps=1000, MaxStepSize=1, MaxError=1e-20, StartingPoint="Automatic", MaxInnerSteps=2, ShowProgress=TRUE, CoefficientDimensions="Automatic",
+    Labels="Automatic",ShowCoefficients=TRUE,ShowParameters=FALSE, ParameterCoding="Effect", ShowCorrelations=FALSE, Method="ML", Title="Summary of model fit"){
 
-######################################################
-#OLD
+    n  = if(data.class(dat)=="numeric") dat else c(t(ftable(dat)));
+    model = tomodelform(model); #put model in standard form: "list(margmod,x)"
+    latdim = tablesize(model) / length(n)
+    if (latdim != floor(latdim) || latdim < 1) cat("Error: incorrect dimensions of the matrix specification of the model","\n") 
 
-#effectmat = function(dim){ 
-#   var = c(1:length(dim))
-#   subvar = allsubsets(var)
-#   MarginalMatrix(var, subvar, dim, Contrasts=TRUE)
-#}
+    fit <- switch( Method, 
+        "ML" = if (latdim == 1) 
+                    margmodfit( n, model, MaxSteps=MaxSteps, MaxStepSize=MaxStepSize, StartingPoint=StartingPoint, MaxError=MaxError,ShowProgress=ShowProgress,Method="ML")
+               else margmodfitEM( n, latdim, model, maxoutersteps=MaxSteps, MaxInnerSteps=MaxInnerSteps, MaxStepSize=MaxStepSize, StartingPoint=StartingPoint, 
+                                    MaxError=MaxError, ShowProgress=ShowProgress),
+        "MDI" = if (latdim != 1)
+                    cat("Error: cannot do latent variable models for Method='MDI'","\n") 
+            else    margmodfit( n, model, MaxSteps=MaxSteps, MaxStepSize=MaxStepSize, StartingPoint=StartingPoint, MaxError=MaxError,ShowProgress=ShowProgress,Method="MDI"),
+        "GSK" = gsk( n, model) 
+    )
 
+    if( Method!="GSK"){
+        coeff = model[[1]]
+        coeff$bt=NULL
+        fit = c(fit, getmodelstats(dat,fit$FittedFrequencies,model,coeff,CoefficientDimensions,Labels,Method))
+    }
 
-#margmat01 = function(marg,dim,Contrasts=FALSE,DropLast=FALSE){
-#returns a matrix which produces appropriate marginals when multiplied with probability vector
-#marg has 0s and 1s indicating which marginals are needed
-#dim gives the dimension of each variable
+    fit$Method = Method 
+    fit$Title = Title
+    class(fit) = "CMM"
 
-#   if ( data.class(marg) == "NULL" ) { mat <- rbind(rep(1,prod(dim)))/(if(Contrasts) prod(dim) else 1) }
-#   else
-#   if(data.class(marg)=="numeric" || data.class(marg)=="character"){
-#      q=list()
-#      nvar=length(dim)
-#      for (i in 1:nvar){
-#         if(marg[[i]]==1) {
-#            q[[i]] <- (diag(dim[[i]])-if(Contrasts)1/dim[[i]] else 0) 
-#            if(DropLast)q[[i]]=q[[i]][,1:(dim[[i]]-1)]} 
-#         else q[[i]] <- matrix(1,dim[[i]]) / (if(Contrasts) dim[[i]] else 1) }
-#      mat=q[[1]]
-#      if(nvar>1) for (i in 2:nvar){mat<-kronecker(mat,q[[i]])}
-#      mat=t(mat)
-#      }
-#   else{
-#      nmarg=length(marg)
-#      mat=margmat01(marg[[1]],dim,Contrasts=Contrasts,DropLast=DropLast)
-#      if(nmarg>1) for(i in 2:nmarg){
-#         mat=rbind(mat,margmat01(marg[[i]],dim,Contrasts=Contrasts,DropLast=DropLast))
-#         }
-#      }
-#   return(mat)
-#}
+    if( ShowSummary){
+        if(Method!="GSK") printalgorithmdetails(fit)
+        summary(fit, ShowCoefficients=ShowCoefficients,ShowParameters=ShowParameters, ShowCorrelations=ShowCorrelations, ParameterCoding=ParameterCoding)
+        cat("\n")
+    }
 
-#margmat01(c(1,0),c(3,3),Contrasts=FALSE,DropLast=FALSE)
-
-
-#MarginalMatrix <- function(var,marg,dim,Contrasts=FALSE,DropLast=FALSE){
-#   marg01 = marg
-#   if( data.class(marg)=="numeric" || data.class(marg)=="character"){
-#      for(i in 1:length(var)){
-#         if(is.element(var[[i]],marg)) marg01[[i]]=1 else marg01[[i]]=0
-#      }
-#   }
-#   else{ if(data.class(marg) != "NULL"){
-#      for(j in 1:length(marg)){
-#         for(i in 1:length(var)){
-#            if(is.element(var[[i]],marg[[j]])) marg01[[j]][[i]]=1 else marg01[[j]][[i]]=0
-#         }
-#      }}
-#   }
-#   margmat01(marg01,dim,Contrasts=Contrasts,DropLast=DropLast)
-#}
-
-#MarginalMatrix(c(1,2),list(c(1,2)),c(2,2),DropLast=TRUE)
-#MarginalMatrix(c(1,2),c(),c(2,2))
-
-#margmat01(c(0,0,0),c(2,3,4))
-#margmat01(list(c(1,0,0),c(0,1,0),c(0,0,1)),c(2,2,3))
+    return(fit)
+}

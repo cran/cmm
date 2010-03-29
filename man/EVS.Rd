@@ -85,6 +85,6 @@ model2 = list(list(bt, "log", at), x);
 nkps3 = MarginalModelFit(EVS, model2, MaxError = 10.^-25,
     MaxSteps = 1000,
     ShowProgress = 10,
-    MaxStepSize = .7 );
+    MaxStepSize = .3 );
 }
 \keyword{datasets}

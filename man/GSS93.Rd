@@ -9,6 +9,8 @@ The data stem from the General Social Survey. The data are tabulated
 in Bergsma, Croon, and Hagenaars (2009, Table 2.1, Table 2.3).
 
 See Section~2.1 in Bergsma, Croon, and Hagenaars (2009).
+
+Several worked examples involving this data set are listed below but more can be found at \url{http://stats.lse.ac.uk/bergsma/cmm/R files/GSS93.R}"
 }
 \usage{data(GSS93)}
 \format{

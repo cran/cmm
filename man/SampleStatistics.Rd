@@ -3,15 +3,15 @@
 \title{SampleStatistics}
 
 \description{Gives sample values, standard errors and z-scores of one or more
-coefficients.
+coefficients. \code{SampleStatistics(dat,coeff)} gives exactly the same output as \code{ModelStatistics(dat,dat,"SaturatedModel",coeff)}. 
 }
 
 \usage{SampleStatistics(dat, coeff, CoefficientDimensions="Automatic",
-    Labels="Automatic", ShowCoefficients=TRUE, ShowParameters=FALSE, ParameterCoding="Effect", ShowCorrelations=FALSE,  Title="")}
+    Labels="Automatic", ShowCoefficients=TRUE, ParameterCoding="Effect", ShowParameters=FALSE, ShowCorrelations=FALSE,  Title="")}
 
 \arguments{
 \item{dat}{observed data as a list of frequencies or as a data frame}
-\item{coeff}{list of coefficients, can be obtained using \code{\link{SpecifyCoefficient}}}
+\item{coeff}{list of coefficients, can be obtained using \code{\link{SpecifyCoefficient}}, or a predefined function such as \code{"log"}}
 \item{CoefficientDimensions}{numeric vector of dimensions of the table in which the coefficient vector is to be arranged}
 \item{Labels}{list of characters or numbers indicating labels for dimensions of table in which the coefficient vector is to be arranged}
 \item{ShowCoefficients}{boolean, indicating whether or not the coefficients are to be displayed}
@@ -36,7 +36,7 @@ and \eqn{s_i}{s_i} takes the values \eqn{(-3.375,-.125,.125,3.375)}{(-3.375, -.1
 }
 
 \value{
-NA. Only output to the screen is provided
+A subset of the output of \code{MarginalModelFit}.
 }
 
 \references{
@@ -71,10 +71,10 @@ NA. Only output to the screen is provided
  at75 <- MarginalMatrix( c(1, 2, 3, 4, 5, 6, 7), list(c(1),c(2),c(3),c(4),c(5),c(6),c(7)), c(5, 5, 5, 5, 5, 5, 5) )
 
  # First method: the "coefficients" are the log-probabilities, from which all the (loglinear) parameters are calculated
- SampleStatistics(dat, list("log",at75), CoefficientDimensions=c(7,5),Labels=c("I","S"),ShowCoefficients=FALSE,ShowParameters=TRUE)
+ stats = SampleStatistics(dat, list("log",at75), CoefficientDimensions=c(7,5),Labels=c("I","S"),ShowCoefficients=FALSE,ShowParameters=TRUE)
 
  # Second method: the "coefficients" are explicitly specified as being the (highest-order) loglinear parameters
  loglinpar75 <- SpecifyCoefficient("LoglinearParameters", c(7,5) )
- SampleStatistics(dat, list(loglinpar75, at75), CoefficientDimensions=c(7,5), Labels=c("I","S"))
+ stats = SampleStatistics(dat, list(loglinpar75, at75), CoefficientDimensions=c(7,5), Labels=c("I","S"))
 }
 \keyword{univar}

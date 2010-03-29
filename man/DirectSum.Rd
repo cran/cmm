@@ -4,13 +4,10 @@
 
 \description{Returns the direct sum of two matrices.}
 
-\usage{DirectSum(m1, m2, p.tr = 0, p.ll = 0)}
+\usage{DirectSum(...)}
 
 \arguments{
-\item{m1}{matrix. Top left matrix}
-\item{m2}{matrix. Lower right matrix}
-\item{p.tr}{numeric. Padding value for the top right matrix}
-\item{p.ll}{numeric. Padding value for the lower left matrix}
+\item{...}{List of one or more matrices}
 }
 
 \details{
@@ -43,7 +40,8 @@ Standard mathematical direct sum operator.
 
 \examples{
  a <- matrix(1:12,3,4)
- DirectSum(a,a)
- DirectSum(a,a,1,2)
+ DirectSum(a)     #returns a
+ DirectSum(a,a)   #returns direct sum of a and a
+ DirectSum(a,a,a) #returns direct sum of a, a and a
 }
 \keyword{univar}

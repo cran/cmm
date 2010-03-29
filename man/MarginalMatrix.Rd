@@ -4,7 +4,7 @@
 
 \description{Returns marginal matrix; i.e., matrix required to obtained marginal frequencies}
 
-\usage{MarginalMatrix(var, marg, dim, SubsetCoding="Identity")}
+\usage{MarginalMatrix(var, marg, dim, SubsetCoding="Identity",SelectCells="All")}
 
 \arguments{
 \item{var}{character or numeric vector containing variables}
@@ -12,6 +12,7 @@
 \item{dim}{numeric vector indicating the dimension of \code{var}}
 \item{SubsetCoding}{allows a (character) type or a matrix to be assigned to variables for each element of \code{suffconfigs},
 see examples and \code{DesignMatrix}}
+\item{SelectCells}{Useful option for empirical likelihood. Default "All" includes all columns, if a list of cells in the table is given only the corresponding columns of MarginalMatrix are included.}
 }
 
 \details{

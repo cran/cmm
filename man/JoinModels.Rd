@@ -4,10 +4,10 @@
 
 \description{Returns the simultaneous specification of two models}
 
-\usage{JoinModels(model1,model2)}
+\usage{JoinModels(...)}
 
 \arguments{
-\item{model1,model2}{two models specified in the same way}
+\item{...}{list of `compatible' models, i.e., each model is specified using the same number of functions (and matrices)}
 }
 
 \details{
@@ -54,6 +54,6 @@ model12 = JoinModels(model1,model2)
 
 # the model can be fitted to an artificial data set
 n = c(1:27)
-MarginalModelFit(n,model12)
+fit=MarginalModelFit(n,model12)
 }
 \keyword{univar}

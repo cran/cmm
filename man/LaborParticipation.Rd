@@ -63,7 +63,7 @@ n <- c(t(ftable(LaborParticipation)))
 at = MarginalMatrix(c("67","68","69","70","71"),list(c("67","68"),c("68","69"),c("69","70"),c("70","71")),c(2,2,2,2,2));
 
 coeff = SpecifyCoefficient("CohenKappa",2,4);
-SampleStatistics(n,list(coeff,at),ShowParameters=FALSE)
+stats = SampleStatistics(n,list(coeff,at),ShowParameters=FALSE)
 
 
 ##############################################################################################################
@@ -77,7 +77,7 @@ bt1 = ConstraintMatrix(c(1),c(),c(4)); #equal kappas
 bt2 = rbind(c(1,-2,1,0),c(0,1,-2,1));  #linear trend for kappas
 model = list(bt1,coeff,at)
 
-m=MarginalModelFit(n,model,ShowParameters=FALSE,ShowProgress=10)
+m = MarginalModelFit(n,model,ShowParameters=FALSE,ShowProgress=10)
 
 }
 \keyword{datasets}

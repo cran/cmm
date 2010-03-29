@@ -17,7 +17,10 @@ the body as a whole or whether more underlying dimensions are needed
 The data are tabulated in Bergsma, Croon, and Hagenaars (2009, Table 2.5, Table 2.7).
 
 See Sections 2.2.2 and 3.1 of Bergsma, Croon, and Hagenaars (2009).
+
+Several worked examples involving this data set are listed below but more can be found at \url{http://stats.lse.ac.uk/bergsma/cmm/R files/BodySatisfaction.R}"
 }
+
 \usage{data(BodySatisfaction)}
 \format{
   A data frame with 301 observations on the following variables.
@@ -66,7 +69,21 @@ See Sections 2.2.2 and 3.1 of Bergsma, Croon, and Hagenaars (2009).
  ## Reproduction of Table 2.5 in Bergsma, Croon, & Hagenaars (2009)
  sapply(2:8,function(i){table(BodySatisfaction[,i])})
 
- ## For Table 2.6, see SampleStatistics
+ ## Table 2.6 in Bergsma, Croon and Hagenaars (2009). Loglinear parameters for marginal table IS
+ ## We provide two to obtain the parameters
+
+ dat   <- BodySatisfaction[,2:8]        # omit first column corresponding to gender
+
+ # matrix producing 1-way marginals, ie the 7x5 table IS
+ at75 <- MarginalMatrix( c(1, 2, 3, 4, 5, 6, 7), list(c(1),c(2),c(3),c(4),c(5),c(6),c(7)), c(5, 5, 5, 5, 5, 5, 5) )
+
+ # First method: the "coefficients" are the log-probabilities, from which all the (loglinear) parameters are calculated
+ stats = SampleStatistics(dat, list("log",at75), CoefficientDimensions=c(7,5),Labels=c("I","S"),ShowCoefficients=FALSE,ShowParameters=TRUE)
+
+ # Second method: the "coefficients" are explicitly specified as being the (highest-order) loglinear parameters
+ loglinpar75 <- SpecifyCoefficient("LoglinearParameters", c(7,5) )
+ stats = SampleStatistics(dat, list(loglinpar75, at75), CoefficientDimensions=c(7,5), Labels=c("I","S"))
+
 
  ## Reproduction of Table 2.7 in Bergsma, Croon, & Hagenaars (2009)
  Table.2.7.male   <- sapply(2:8,function(i){table(BodySatisfaction[BodySatisfaction[1]=="Male",i])})
@@ -75,94 +92,7 @@ See Sections 2.2.2 and 3.1 of Bergsma, Croon, and Hagenaars (2009).
  apply(Table.2.7.male,2,function(x){sum(c(1:5)*x/sum(x))}) #means
  sqrt(apply(Table.2.7.male,2,function(x){(sum(c(1:5)^2*x/sum(x)))-(sum(c(1:5)*x/sum(x)))^2}))#standard deviations
 
-
- ## Fit marginal homogeneity model
- # matrix producing 1-way marginals, ie the 7x5 table IS
- at75 <- MarginalMatrix( c(1, 2, 3, 4, 5, 6, 7), list(c(1),c(2),c(3),c(4),c(5),c(6),c(7)), c(5, 5, 5, 5, 5, 5, 5) )
- # model specifying independence of I and S, i.e., marginal homogeneity
- bt    <- ConstraintMatrix( c("I","S"), list(c("I"),c("S")), c(7,5) )
- model <- list(bt, "log", at75 )        # define model
- dat   <- BodySatisfaction[,2:8]        # omit first column corresponding to gender
-#AA# fit   <- MarginalModelFit(dat, model, CoefficientDimensions=c(7,5),Labels=c("I","S"))# fit the model
-
-
- ## Fit marginal homogeneity model for means
- # matrix producing 1-way marginals, ie the 7x5 table IS
- at75 <- MarginalMatrix( c(1, 2, 3, 4, 5, 6, 7), list(c(1),c(2),c(3),c(4),c(5),c(6),c(7)), c(5, 5, 5, 5, 5, 5, 5) )
- # specification for means in a 5x1 table, repeated 7 times for the 7 items
- meanspec7 <- SpecifyCoefficient("Mean", c(1, 2, 3, 4, 5), 7 )
- # model specifying equality of means in the 7 one-way marginal tables
- bt    <- ConstraintMatrix( c(1), c(), c(7) )
- model <- list(bt, meanspec7, at75 )        # define model
- dat   <- BodySatisfaction[,2:8]            # omit first column corresponding to gender
-#AA# fit   <- MarginalModelFit(dat, model)      # fit the model
-
-
-
-
-####################################################################################
-# Models for marginal means, variances, etc
-# Table IS (also subgroups: men, women)
-
-# matrix producing 1-way marginals, ie the 7x5 table IS
-at75 = MarginalMatrix( c(1, 2, 3, 4, 5, 6, 7), list(c(1),c(2),c(3),c(4),c(5),c(6),c(7)), c(5,5,5,5,5,5,5) )
-
-# select one of the coefficients and associated parameter
-coefficientname <- "Mean"; param = c(1,2,3,4,5);
-#coefficientname <- "Variance"; param = c(1,2,3,4,5)
-#coefficientname <- "StandardDeviation"; param = c(1,2,3,4,5)
-#coefficientname <- "GiniMeanDifference"; param = c(1,2,3,4,5)
-#coefficientname <- "Entropy"; param = 5
-#coefficientname <- "DiversityIndex"; param = 5
-
-# specification for coefficients in a 5x1 table, for 7 items
-spec7 = SpecifyCoefficient( coefficientname, param, 7 )
-
-# model specifying equality of coefficients in the 7 one-way marginal tables
-bt1 <- ConstraintMatrix( c(1), c(), c(7) )
-model1 <- list( bt1, spec7, at75 )
-
-dat7all   <- BodySatisfaction[,2:8]                 # omit first column corresponding to gender
-dat7men   <- BodySatisfaction[BodySatisfaction=="Male",][2:8] # select men (first column a zero)
-dat7women <- BodySatisfaction[BodySatisfaction=="Female",][2:8] # select women (first column a one)
-
-# fit the models
-#AA#pi11 <- MarginalModelFit(dat7all, model1,MaxSteps=10)    # 7 equal coefficients men+women table IS
-#AA#pi12 <- MarginalModelFit(dat7men, model1,MaxSteps=10)    # 7 equal coefficients men table IS
-#AA#pi13 <- MarginalModelFit(dat7women, model1,MaxSteps=10)  # 7 equal coefficients women table IS
-
-
-
-####################################################################################
-# Models for marginal means, variances, etc
-# Table IGS
-# NB: THE FOLLOWING ANALYSES ARE COMPUTATIONALLY INTENSIVE AND FOR THIS REASON COULD NOT GET THROUGH
-# THE R-CHECK, SO PLEASE REMOVE THE #'S WHERE APPROPRIATE BEFORE RUNNING (IN PARTICULAR: BEFORE at725, AND EG model2 AND pi14
-
-# matrix producing 2-way marginals, ie the 7x2x5 table IGS
-#at725 = MarginalMatrix( c(1, 2, 3, 4, 5, 6, 7, 8), list( c(1,2), c(1,3), c(1,4), c(1,5), c(1,6), c(1,7), c(1,8) ), c(2, 5, 5, 5, 5, 5, 5, 5) )
-
-# select one of the coefficients and associated parameter
-coefficientname <- "Mean"; param = c(1,2,3,4,5);
-#coefficientname <- "Variance"; param = c(1,2,3,4,5)
-#coefficientname <- "StandardDeviation"; param = c(1,2,3,4,5)
-#coefficientname <- "GiniMeanDifference"; param = c(1,2,3,4,5)
-#coefficientname <- "Entropy"; param = 5
-#coefficientname <- "DiversityIndex"; param = 5
-
-# specification for coefficients in a 5x1 table, for 7x2 table IG
-spec14 = SpecifyCoefficient( coefficientname, param, 14 )
-
-# Model of equality of all 14 coefficients in the 7x2x5 table IGS
-bt2 = ConstraintMatrix( c(1,2), c(2), c(7,2) )
-#model2 = list( bt2, spec14, at725 )
-
-# no 3-variable interaction for coefficients in the 7x2x5 table IGS
-bt3 = ConstraintMatrix( c(1,2), list( c(1), c(2) ), c(7,2) )
-#model3 = list( bt3, spec14, at725 )
-
-#pi14 <- MarginalModelFit(BodySatisfaction, model2,MaxSteps=50)    # 14 equal coefficients men+women table IGS
-#pi15 <- MarginalModelFit(BodySatisfaction, model3,MaxSteps=10)    # no 3-variable interaction for coefficients in 7x2x5 table IGS
+ #For further worked examples from the book, see http://stats.lse.ac.uk/bergsma/cmm/R files/BodySatisfaction.R
 
 }
 \keyword{datasets}

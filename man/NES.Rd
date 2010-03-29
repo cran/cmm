@@ -35,7 +35,7 @@ US National Election Studies.
 
  Bergsma, W. P., Croon, M. A., & Hagenaars, J. A. P. (2009).\emph{Marginal models for dependent, clustered, and longitudinal categorical data.}New York: Springer.
 
- Examples in book: \url{http://stats.lse.ac.uk/bergsma/cmm/R\%20files/NES.R}
+ Examples in book: \url{http://stats.lse.ac.uk/bergsma/cmm/R files/NES.R}
 }
 \examples{
 data(NES)
@@ -52,8 +52,8 @@ model1 <- list(bt1, "identity", at);
 
 start <- c(t(ftable(NES))) + .001;
 pihat <- MarginalModelFit(NES, model1,
-    MaxSteps = 3000, StartingPoint = start,
-    ShowProgress = 250, MaxError = 1e-28,
+    MaxSteps = 1000, StartingPoint = start,
+    ShowProgress = 100, MaxError = 1e-28,
     CoefficientDimensions = c(3,7), ShowCoefficients = TRUE,
     ShowParameters = FALSE, Labels = c("T", "P"));
 }

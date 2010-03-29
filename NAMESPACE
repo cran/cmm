@@ -20,5 +20,5 @@ export(
 #
 
 # FOR FUTURE USE
-# S3method(summary, "ModelStatisticsClass")
+S3method(summary, "CMM")
 # S3method(summary, "SampleStatisticsClass")
