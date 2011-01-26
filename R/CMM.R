@@ -227,13 +227,14 @@ DesignMatrix = function(var, suffconfigs, dim, SubsetCoding="Automatic", MakeSub
 
 
 
-EMarginalMatrix <- function(X, marg=NULL, var=var.default, dim=dim.default){
+EMarginalMatrix <- function(X, marg=NULL, var=var.default, dim=NULL){
   var.default <- 1:ncol(X)
   X <- X[,var]
   if(class(marg)!="list")marg <- list(marg)
   match.c <- function(strng,positions,criteria) all(unlist(strsplit(strng,NULL))[positions] == criteria)
-  dim.default <- apply(cbind(X,NA),2, unique)[-(ncol(X)+1)]
-  dim <- lapply(dim, sort)
+  # dim.default <- apply(cbind(X,NA),2, unique)[-(ncol(X)+1)]
+  # dim <- lapply(dim, sort)
+  
   n <- table(apply(X,1,paste, collapse=""))
   lab.n <- names(n)
   D <- NULL; i <- 1; j <- 1
@@ -622,6 +623,269 @@ spec.cohenkappa <- function(k){
 #coeff=spec.cohenkappa(2)
 #gfunction(c(4,2,6,4),coeff)
 
+all.patterns <- function(J,m){
+  grid <- list()
+  j <- 0;
+  p <- m^J
+  for (j in 1:J){
+    grid <- c(grid, j)
+    grid[[j]] <- 0:(m-1)
+  }
+  X <- t(expand.grid(grid))
+  dimnames(X) <- NULL
+  return(X[J:1,])
+}
+
+
+spec.cronbachalpha <- function(arg, data){
+# arg = list(
+#         list(items alpha 1, items alpha 2, ..., items alpha k),
+#         list(    g alpha 1,     g alpha 2, ...,     g alpha k),
+#         list(group alpha 1, group alpha 2, ..., group alpha k)
+#       )
+# 
+  eps <- 1e-5
+# Functions for matrices filled with ones (U) and zeroes (O)
+  U <- function(a,b) matrix(1,a,b)
+  O <- function(a,b) matrix(0,a,b)
+# Function converts string to integer
+  string2integer <- function(s) as.numeric(unlist(strsplit(s,NULL)))
+# Function modified DirectSum
+  direct.sum <- function(L){
+    if (length(L)==1) return(L[[1]])
+    C <- L[[1]]
+    for (i in 2:length(L)) C <- DirectSum(C,L[[i]])
+    return(C)
+  }
+
+  if(is.null(arg)) stop("'arg' not specified")
+  if(!is.list(arg)) stop("'arg' is not a list")
+  if(!is.list(arg[[1]])) stop("First element of 'arg' is not a list")
+  method <- ifelse(is.null(data),1,2)  
+  rep <- length(arg[[1]])
+  mats <- list()
+  for (i in 1:5)  mats[[i]] <- list()
+  for (i in 1:rep){
+    items <- arg[[1]][[i]]
+    J <- length(items)
+    g <- arg[[2]][[i]]
+    group.var <- NULL
+    if(length(arg)==3) group.var <- 1
+    if (method==1){
+      R <- all.patterns(J,g)
+    } else {
+      if(is.null(group.var)) Y <- data[,items] else Y <- data[data[,group.var]==i,items]
+      if(any(apply(Y,2,var) < eps))stop("One or more variables have zero variance")  
+      lab.n <- matrix(names(table(apply(Y,1,paste, collapse=""))))
+      R <- apply(lab.n,1,string2integer)
+    }
+    S <- U(1,J) %*% R
+    C5 <- rbind(R,S,R^2,S^2,U(1,ncol(R)))
+    C4 <- rbind(
+            cbind(O(J+1,J+1),  diag(J+1), U(J+1,1)),
+            cbind(diag(2,J+1), O(J+1,J+1),O(J+1,1))
+          )
+    C3 <- rbind(
+           cbind(U(1,J), 0,      -U(1,J), 0),
+           cbind(O(2,J), U(2,1),  O(2,J), -U(2,1))
+          )
+    C2 <- matrix(c(0,1,1,-1,-1,0),nrow=2)
+    C1 <- matrix(c(J/(J-1),-J/(J-1)),nrow=1)
+    mats[[1]][[i]] <- C1
+    mats[[2]][[i]] <- C2
+    mats[[3]][[i]] <- C3
+    mats[[4]][[i]] <- C4
+    mats[[5]][[i]] <- C5
+  }
+  C1 <- direct.sum(mats[[1]])   
+  C2 <- direct.sum(mats[[2]])   
+  C3 <- direct.sum(mats[[3]])   
+  C4 <- direct.sum(mats[[4]])   
+  C5 <- direct.sum(mats[[5]])   
+  matlist = list(C1,C2,C3,C4,C5)
+  funlist = list("exp","log","exp","log","identity")
+  return(list(matlist,funlist))
+}
+
+spec.mokkenh <- function(arg, data){
+# arg = list(
+#         list(items H 1, items H 2, ..., items H k),
+#         list(    g H 1,     g H 2, ...,     g H k),
+#         list(group H 1, group H 2, ..., group H k)
+#       )
+# 
+  eps <- 1e-5
+# Functions for matrices filled with ones (U) and zeroes (O)
+  U <- function(a,b) matrix(1,a,b)
+  O <- function(a,b) matrix(0,a,b)
+# Function converts string to integer
+  string2integer <- function(s) as.numeric(unlist(strsplit(s,NULL)))
+# Function modified DirectSum
+  direct.sum <- function(L){
+    if (length(L)==1) return(L[[1]])
+    C <- L[[1]]
+    for (i in 2:length(L)) C <- DirectSum(C,L[[i]])
+    return(C)
+  }
+# Function prp
+  prp <- function(A,B){
+    if(nrow(A)!=nrow(B) | ncol(A)!=ncol(B)) stop('A and B have unequal rows or columns')
+    n <- nrow(A)
+    C <- matrix(nrow=n*(n-1)/2,ncol=ncol(A))
+    i <- 0; j <- 0
+    for(i in (1:(n-1))) for(j in ((i+1):n)){
+      k <- (i-1)*n - sum(0:i) + j
+      C[k,] <- A[i,] * B[j,]
+    }
+    return(C)
+  }
+
+  if(is.null(arg)) stop("'arg' not specified")
+  if(!is.list(arg)) stop("'arg' is not a list")
+  if(!is.list(arg[[1]])) stop("First element of 'arg' is not a list")
+  method <- ifelse(is.null(data),1,2)  
+  rep <- length(arg[[1]])
+  mats <- list()
+  for (i in 1:5)  mats[[i]] <- list()
+  for (i in 1:rep){
+    items <- arg[[1]][[i]]
+    J <- length(items)
+    g <- arg[[2]][[i]]
+    group.var <- NULL
+    if(length(arg)==3) group.var <- 1
+    if (method==1){
+      R <- all.patterns(J,g)
+    } else {
+      if(is.null(group.var)) Y <- data[,items] else Y <- data[data[,group.var]==i,items]
+      if(any(apply(Y,2,var) < eps))stop("One or more variables have zero variance")  
+      lab.n <- matrix(names(table(apply(Y,1,paste, collapse=""))))
+      R <- apply(lab.n,1,string2integer)
+    }
+    p <- J*(J-1)/2
+  
+    C5 <- rbind(U(1,ncol(R)),1-R,R,prp(1-R,R)) 
+    Q1 <- O(p,2*J)
+    for (ii in (1:(J-1))) for (jj in (ii+1):J) Q1[J*(ii-1) - ii*(ii+1)/2 + jj,c(ii,J+jj)] <- 1
+    C4 <- DirectSum(U(1,1),Q1,diag(p))
+    C3 <- DirectSum(U(2,1),U(1,p),U(1,p))
+    C2 <- matrix(c(1,-1,0,0, 0, 1,-1,1),2,4,byrow=TRUE)
+    C1 <- matrix(c(1,-1),1,2)
+    mats[[1]][[i]] <- C1
+    mats[[2]][[i]] <- C2
+    mats[[3]][[i]] <- C3
+    mats[[4]][[i]] <- C4
+    mats[[5]][[i]] <- C5
+  }
+  C1 <- direct.sum(mats[[1]])   
+  C2 <- direct.sum(mats[[2]])   
+  C3 <- direct.sum(mats[[3]])   
+  C4 <- direct.sum(mats[[4]])   
+  C5 <- direct.sum(mats[[5]])   
+  matlist = list(C1,C2,C3,C4,C5)
+  funlist = list("exp","log","exp","log","identity")
+  return(list(matlist,funlist))
+}
+
+spec.allmokkenhj <- function(arg, data){
+# arg = list(
+#         list(items Hj 1, items Hj 2, ..., items Hj k),
+#         list(    g Hj 1,     g Hj 2, ...,     g Hj k), # SHOULD BE 2
+#         list(group Hj 1, group Hj 2, ..., group Hj k)
+#       )
+# 
+  eps <- 1e-5
+# Functions for matrices filled with ones (U) and zeroes (O)
+  U <- function(a,b) matrix(1,a,b)
+  O <- function(a,b) matrix(0,a,b)
+# Function converts string to integer
+  string2integer <- function(s) as.numeric(unlist(strsplit(s,NULL)))
+# Function modified DirectSum
+  direct.sum <- function(L){
+    if (length(L)==1) return(L[[1]])
+    C <- L[[1]]
+    for (i in 2:length(L)) C <- DirectSum(C,L[[i]])
+    return(C)
+  }
+# Function prp
+  prp <- function(A,B){
+    if(nrow(A)!=nrow(B) | ncol(A)!=ncol(B)) stop('A and B have unequal rows or columns')
+    n <- nrow(A)
+    C <- matrix(nrow=n*(n-1)/2,ncol=ncol(A))
+    i <- 0; j <- 0
+    for(i in (1:(n-1))) for(j in ((i+1):n)){
+      k <- (i-1)*n - sum(0:i) + j
+      C[k,] <- A[i,] * B[j,]
+    }
+    return(C)
+  }
+
+  if(is.null(arg)) stop("'arg' not specified")
+  if(!is.list(arg)) stop("'arg' is not a list")
+  if(!is.list(arg[[1]])) stop("First element of 'arg' is not a list")
+  method <- ifelse(is.null(data),1,2)  
+  rep <- length(arg[[1]])
+  mats <- list()
+  for (i in 1:5)  mats[[i]] <- list()
+  for (i in 1:rep){
+    items <- arg[[1]][[i]]
+    J <- length(items)
+    g <- arg[[2]][[i]]
+    group.var <- NULL
+    if(length(arg)==3) group.var <- 1
+    if (method==1){
+      R <- all.patterns(J,g)
+    } else {
+      if(is.null(group.var)) Y <- data[,items] else Y <- data[data[,group.var]==i,items]
+      if(any(apply(Y,2,var) < eps))stop("One or more variables have zero variance")  
+      lab.n <- matrix(names(table(apply(Y,1,paste, collapse=""))))
+      R <- apply(lab.n,1,string2integer)
+    }
+    p <- J*(J-1)/2
+  
+    C5 <- rbind(U(1,ncol(R)),1-R,R,prp(1-R,R)) 
+    Q1 <- O(p,2*J)
+    for (ii in (1:(J-1))) for (jj in (ii+1):J) Q1[J*(ii-1) - ii*(ii+1)/2 + jj,c(ii,J+jj)] <- 1
+    C4 <- DirectSum(U(1,1),Q1,diag(p))
+    Q2 <- t(Q1[,1:J] + Q1[,(J+1):(2*J)])
+
+    C3 <- DirectSum(U(2,1),Q2,Q2)
+    C2 <-  rbind(
+        cbind(matrix(c(1,-1),1,2),O(1,2*J)),
+        cbind(U(J,1),O(J,1),-diag(J),diag(J))
+      )
+    C1 <- cbind(U(J,1),diag(-1,J))
+    mats[[1]][[i]] <- C1
+    mats[[2]][[i]] <- C2
+    mats[[3]][[i]] <- C3
+    mats[[4]][[i]] <- C4
+    mats[[5]][[i]] <- C5
+  }
+  C1 <- direct.sum(mats[[1]])   
+  C2 <- direct.sum(mats[[2]])   
+  C3 <- direct.sum(mats[[3]])   
+  C4 <- direct.sum(mats[[4]])   
+  C5 <- direct.sum(mats[[5]])   
+  matlist = list(C1,C2,C3,C4,C5)
+  funlist = list("exp","log","exp","log","identity")
+  return(list(matlist,funlist))
+}
+
+
+spec.hij <- function(){
+  cat("For computing Loevinger's scalability coefficients it is assumed that the items are ordered by there p-value;",fill=TRUE)
+  cat("item 1 is the easiest/most popular item",fill=TRUE)
+  R <- matrix(c(0,0,0,1,1,0,1,1),2,4)
+  C3 <- rbind(matrix(1,2,4),1-R,R,matrix(c(0,1,0,0),1,4))
+  # C3 . n = (n+++, n+++, n0++, n+0+, n++0, n1++, n+1+, n++1, n01+, n0+1, n+01)'
+  C2 <- matrix(c(1,1,-1,0,0,-1,0,0,0,0,0,-1,0,1),2,7)
+  # exp(C2. log(C1 .n)) = 1, 1-H12, 1-H13, 1-H14
+  C1 <- matrix(c(1, -1),1,2)
+  # C1 %*% exp(C2 %*% log(C3 %*% n))
+  matlist = list(C1,C2,C3)
+  funlist = list("exp","log","identity")
+  return(list(matlist,funlist))
+}
+
 
 spec.concdiscprobs <- function(rc){
    r=rc[[1]];
@@ -800,33 +1064,45 @@ MultiCoefficient <- function(coeff,k){
 }
 
 
-SpecifyCoefficient <- function(name,arg,rep=1){
-    z = arg;
+SpecifyCoefficient <- function(
+      name,        # Name of the coefficient 
+      arg = NULL,  # Coefficient specific arguments
+      rep = 1,
+      data = NULL  # Data set. If provided, matrices designed for MEL are provided.
+      ){
     coeff <- switch( name,
-        "Mean" = spec.mean(z),
-        "Variance" = spec.variance(z),
-        "StandardDeviation" = spec.variance(z),
-        "Entropy" = spec.entropy(z),
-        "DiversityIndex" = spec.diversityindex(z),
-        "GiniMeanDifference" = spec.ginimeandifference(z),
-        "Covariance" = spec.covariance(z),
-        "Correlation" = spec.correlation(z),
-        "CohenKappa" = spec.cohenkappa(z), 
-        "KendallTau" = spec.kendalltau(z),
-        "GoodmanKruskalGamma" = spec.gamma(z),
-        "DifferenceInProportions" = spec.diffprop(z), #z has the form (var,condvar,dim)
-        "ConditionalProbabilities" = spec.condprob(z),
-        "Probabilities" = spec.prob(z),
-        "LogProbabilities" = spec.logprob(z),
-        "LoglinearParameters" = spec.loglinearpars(z), #z=dim
-        "LogOddsRatio" = spec.logOR(z),
-        "OrdinalLocation-A" = spec.ordinal.loc.A(z),
-        "OrdinalLocation-L" = spec.ordinal.loc.L(z),
-        "OrdinalDispersion-A" = spec.ordinal.disp.A(z),
-        "OrdinalDispersion-L" = spec.ordinal.disp.L(z)
+        "Mean" = spec.mean(arg),
+        "Variance" = spec.variance(arg),
+        "StandardDeviation" = spec.variance(arg),
+        "Entropy" = spec.entropy(arg),
+        "DiversityIndex" = spec.diversityindex(arg),
+        "GiniMeanDifference" = spec.ginimeandifference(arg),
+        "Covariance" = spec.covariance(arg),
+        "Correlation" = spec.correlation(arg),
+        "CohenKappa" = spec.cohenkappa(arg), 
+        "CronbachAlpha" = spec.cronbachalpha(arg, data),
+        "Hij" = spec.hij(),
+        "KendallTau" = spec.kendalltau(arg),
+        "GoodmanKruskalGamma" = spec.gamma(arg),
+        "DifferenceInProportions" = spec.diffprop(arg), #arg has the form (var,condvar,dim)
+        "ConditionalProbabilities" = spec.condprob(arg),
+        "Probabilities" = spec.prob(arg),
+        "LogProbabilities" = spec.logprob(arg),
+        "LoglinearParameters" = spec.loglinearpars(arg), #arg=dim
+        "LogOddsRatio" = spec.logOR(arg),
+        # NOT YET AVAILABLE "MokkenHij" = spec.mokkenhij(),
+        # NOT YET AVAILABLE "AllMokkenHij" = spec.allmokkenhij(arg,data),
+        # NOT YET AVAILABLE "MokkenHj" = spec.mokkenhj(arg),
+        "AllMokkenHj" = spec.allmokkenhj(arg,data),
+        "MokkenH" = spec.mokkenh(arg, data),
+        "OrdinalLocation-A" = spec.ordinal.loc.A(arg),
+        "OrdinalLocation-L" = spec.ordinal.loc.L(arg),
+        "OrdinalDispersion-A" = spec.ordinal.disp.A(arg),
+        "OrdinalDispersion-L" = spec.ordinal.disp.L(arg)
         )
     MultiCoefficient(coeff,rep)
 }
+
 
 
 #OLD
@@ -1570,11 +1846,20 @@ getsamplestats = function(dat,coeff,CoefficientDimensions,ParameterCoding,Labels
     stats = c(stats,coefficientstats( obsval, obsval, covtheta, covresid, CoefficientDimensions, Labels, satmod=TRUE, ParameterCoding=ParameterCoding ))
 }
 
-SampleStatistics = function(dat, coeff, CoefficientDimensions="Automatic", Labels="Automatic", ShowCoefficients=TRUE, ParameterCoding="Effect", 
-                                ShowParameters=FALSE, ShowCorrelations=FALSE,  Title="" ){
+SampleStatistics = function(dat, 
+                            coeff, 
+                            CoefficientDimensions="Automatic", 
+                            Labels="Automatic", 
+                            ShowCoefficients=TRUE, 
+                            ParameterCoding="Effect", 
+                            ShowParameters=FALSE, 
+                            ShowCorrelations=FALSE,  
+                            Title="", 
+                            ShowSummary = TRUE
+                   ){
     stats = getsamplestats(dat,coeff,CoefficientDimensions,ParameterCoding,Labels)
     class(stats) = "CMM"
-    summary(stats, ShowParameters=ShowParameters, ShowCorrelations=ShowCorrelations, ParameterCoding=ParameterCoding)
+    if(ShowSummary) summary(stats, ShowParameters=ShowParameters, ShowCorrelations=ShowCorrelations, ParameterCoding=ParameterCoding)
     return(stats)
 }
 

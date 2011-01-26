@@ -62,7 +62,7 @@ n <- c(t(ftable(LaborParticipation)))
 #matrix for obtaining transition matrices for consecutive years
 at = MarginalMatrix(c("67","68","69","70","71"),list(c("67","68"),c("68","69"),c("69","70"),c("70","71")),c(2,2,2,2,2));
 
-coeff = SpecifyCoefficient("CohenKappa",2,4);
+coeff = SpecifyCoefficient("CohenKappa",arg = 2, rep = 4);
 stats = SampleStatistics(n,list(coeff,at),ShowParameters=FALSE)
 
 

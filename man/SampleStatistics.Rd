@@ -7,7 +7,8 @@ coefficients. \code{SampleStatistics(dat,coeff)} gives exactly the same output a
 }
 
 \usage{SampleStatistics(dat, coeff, CoefficientDimensions="Automatic",
-    Labels="Automatic", ShowCoefficients=TRUE, ParameterCoding="Effect", ShowParameters=FALSE, ShowCorrelations=FALSE,  Title="")}
+    Labels="Automatic", ShowCoefficients=TRUE, ParameterCoding="Effect", ShowParameters=FALSE, ShowCorrelations=FALSE,
+    Title="", ShowSummary = TRUE)}
 
 \arguments{
 \item{dat}{observed data as a list of frequencies or as a data frame}
@@ -18,7 +19,8 @@ coefficients. \code{SampleStatistics(dat,coeff)} gives exactly the same output a
 \item{ShowParameters}{boolean, indicating whether or not the parameters (computed from the coefficients) are to be displayed}
 \item{ParameterCoding}{Coding to be used for parameters, choice of \code{"Effect"}, \code{"Dummy"} and  \code{"Polynomial"}}
 \item{ShowCorrelations}{boolean, indicating whether or not to show the correlation matrix for the estimated coefficients}
-\item{Title}{title of computation to appear at top of screen output}
+\item{Title}{Title of computation to appear at top of screen output}
+\item{ShowSummary}{Show summary on the screen}
 }
 
 \details{
