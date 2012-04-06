@@ -1,5 +1,3 @@
-# source("h:/my documents/r files/cmm.r")
-#
 # R programme for the book:
 #
 # Marginal models
@@ -48,16 +46,6 @@
 ##############################################################################
 ##############################################################################
 ##############################################################################
-# libraries: matrix operations
-# for the nullspace function
-library(MASS)
-# ?Null
-
-
-
-
-
-
 ##############################################################################
 ##############################################################################
 ##############################################################################
@@ -259,6 +247,7 @@ MarginalMatrix = function(var,marg,dim,SubsetCoding="Identity",SelectCells="All"
 #MarginalMatrix(c(1,2),list(c(1),c(2)),c(3,3))
 
 new.null <- function (M) {
+#   library(MASS)
    tmp <- qr(M)
    set <- if (tmp$rank == 0) 1:ncol(M) else -(1:tmp$rank)
    qr.Q(tmp, complete = TRUE)[, set, drop = FALSE]
@@ -271,20 +260,6 @@ ConstraintMatrix = function(var,suffconfigs,dim, SubsetCoding="Automatic"){
    }
 
 #ConstraintMatrix(c(1,2),list(c(1),c(2)),c(2,2))
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
 
 #compute the matrix for obtaining the beta parameters under different coding schemes
 
@@ -1717,7 +1692,7 @@ gsk <- function( n, model, CoefficientDimensions="Automatic", Labels="Automatic"
     stats$SampleSize <- sum(n)
     stats$BIC  <- stats$WaldStatistic - stats$DegreesOfFreedom * log( sum(n) )
     stats$PValue <- signif(1-pchisq(stats$WaldStatistic,stats$DegreesOfFreedom),5)
-    stats$Eigenvalues = eigen( HDH, only.value = T )$values
+    stats$Eigenvalues = eigen(HDH, only.values = TRUE)$values
     stats = c(stats,coefficientstats(obsval,fitval,covtheta,covresid,CoefficientDimensions,Labels,FALSE))
 
     return(stats)
@@ -1835,7 +1810,7 @@ getsamplestats = function(dat,coeff,CoefficientDimensions,ParameterCoding,Labels
     GDG <- Gt %*% (n * t(Gt))
 
     stats = list()
-    stats$Eigenvalues = eigen( GDG, only.value = T )$values;
+    stats$Eigenvalues = eigen(GDG, only.values = TRUE)$values;
     stats$SampleSize <- sum(n)
     stats$LogLikelihoodRatio = 0
 
@@ -1905,7 +1880,7 @@ getmodelstats = function(dat, mhat, model, coeff, CoefficientDimensions, Labels,
     HDH <- Ht %*% (mhat * t(Ht))
     covresid <- GDH %*% solve(HDH) %*% t(GDH) 
     covtheta <- GDG - covresid
-    eig = eigen( HDH, only.value = T )$values;
+    eig = eigen(HDH, only.values = TRUE)$values;
     df = modeldf(model,n)
 
     stats = c(stats,getbasicstatistics(n,manmhat,df,eig))
