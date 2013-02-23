@@ -1,14 +1,15 @@
 Package: cmm
 Type: Package
 Title: Categorical Marginal Models
-Version: 0.4
-Date: 2012-04-06
+Version: 0.7
+Date: 2013-02-23
 Author: Wicher Bergsma and Andries van der Ark
-Maintainer: Wicher Bergsma <W.P.Bergsma@lse.ac.uk>
+Maintainer: L. A. van der Ark <A.vdArk@uvt.nl>
 Description: Quite extensive package for the estimation of marginal
         models for categorical data.
 License: GPL (>= 2)
 LazyLoad: yes
-Packaged: 2012-04-06 12:05:33 UTC; Andries
+Packaged: 2013-02-23 14:00:08 UTC; Andries
+NeedsCompilation: no
 Repository: CRAN
-Date/Publication: 2012-04-06 12:39:20
+Date/Publication: 2013-02-23 15:18:30

@@ -72,6 +72,14 @@ Several worked examples involving this data set are listed below but more can be
  ## Table 2.6 in Bergsma, Croon and Hagenaars (2009). Loglinear parameters for marginal table IS
  ## We provide two to obtain the parameters
 
+ ## Reproduction of Table 2.7 in Bergsma, Croon, & Hagenaars (2009)
+ Table.2.7.male   <- sapply(2:8,function(i){table(BodySatisfaction[BodySatisfaction[1]=="Male",i])})
+ Table.2.7.male
+ apply(Table.2.7.male,2,sum)                               #totals
+ apply(Table.2.7.male,2,function(x){sum(c(1:5)*x/sum(x))}) #means
+ sqrt(apply(Table.2.7.male,2,function(x){(sum(c(1:5)^2*x/sum(x)))-(sum(c(1:5)*x/sum(x)))^2}))#standard deviations
+
+\dontrun{
  dat   <- BodySatisfaction[,2:8]        # omit first column corresponding to gender
 
  # matrix producing 1-way marginals, ie the 7x5 table IS
@@ -83,16 +91,7 @@ Several worked examples involving this data set are listed below but more can be
  # Second method: the "coefficients" are explicitly specified as being the (highest-order) loglinear parameters
  loglinpar75 <- SpecifyCoefficient("LoglinearParameters", c(7,5) )
  stats = SampleStatistics(dat, list(loglinpar75, at75), CoefficientDimensions=c(7,5), Labels=c("I","S"))
-
-
- ## Reproduction of Table 2.7 in Bergsma, Croon, & Hagenaars (2009)
- Table.2.7.male   <- sapply(2:8,function(i){table(BodySatisfaction[BodySatisfaction[1]=="Male",i])})
- Table.2.7.male
- apply(Table.2.7.male,2,sum)                               #totals
- apply(Table.2.7.male,2,function(x){sum(c(1:5)*x/sum(x))}) #means
- sqrt(apply(Table.2.7.male,2,function(x){(sum(c(1:5)^2*x/sum(x)))-(sum(c(1:5)*x/sum(x)))^2}))#standard deviations
-
+}
  #For further worked examples from the book, see http://stats.lse.ac.uk/bergsma/cmm/R files/BodySatisfaction.R
-
 }
 \keyword{datasets}

@@ -62,6 +62,7 @@ A subset of the output of \code{MarginalModelFit}.
 }
 
 \examples{
+\dontrun{
  data(BodySatisfaction)
 
  ## Table 2.6 in Bergsma, Croon and Hagenaars (2009). Loglinear parameters for marginal table IS
@@ -78,5 +79,6 @@ A subset of the output of \code{MarginalModelFit}.
  # Second method: the "coefficients" are explicitly specified as being the (highest-order) loglinear parameters
  loglinpar75 <- SpecifyCoefficient("LoglinearParameters", c(7,5) )
  stats = SampleStatistics(dat, list(loglinpar75, at75), CoefficientDimensions=c(7,5), Labels=c("I","S"))
+}
 }
 \keyword{univar}

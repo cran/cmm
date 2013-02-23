@@ -1,4 +1,4 @@
-26c89fb9016558d2eeaef476ae2fc8b8 *DESCRIPTION
+9c8ecc79ff0200c2b0b65bd04f1e1fc7 *DESCRIPTION
 8072f9d0e3b9842d2b196eca5626a86d *NAMESPACE
 bd9e3968111e94f96e87f8762ec89695 *R/CMM.R
 13ddf3e6607b0594ec5ded9f704d7aa4 *data/Antisemitism.rda
@@ -16,9 +16,10 @@ b10bc4e7602d6196cf72bfc12e0c3277 *data/NES.rda
 01e45957782e97762a09dbb947bd056d *data/NKPS.rda
 d46474c202be273a250c5b5931d39022 *data/NKPS2.rda
 0ecd8e0e3af4e30aa8c1a0fc9071ce1e *data/Smoking.rda
+fdf9e1c79790b2317d8bf874beb6c1fa *data/TestCronbachAlpha.rda
 61beaebe449ea1bc17d11f5c49051f76 *inst/CITATION
 e6c4ee0037f250305d9ec2d609a08440 *man/Antisemitism.Rd
-89ecc78bd76fc2045b40514730f82800 *man/BodySatisfaction.Rd
+ef79ed00c6e29b59018f6944883cebcf *man/BodySatisfaction.Rd
 47ccc849a48cbed07e43f74603da0ad9 *man/ClarenceThomas.Rd
 8eea6cbf958c9581951ce562e24b28c3 *man/ConstraintMatrix.Rd
 43fcbc9d3cb5fa047abebbbf8f4f9c9c *man/DesignMatrix.Rd
@@ -36,7 +37,8 @@ d20637c8532b0d9c30b80d407b00af06 *man/MarginalModelFit.Rd
 00b736ae4728f2d27136418d1d9990ec *man/ModelStatistics.Rd
 bdafa8ad8ffc4d3d6b40d7b26fe0ce84 *man/NES.Rd
 fd82e6a6600fba06ecc2cd3dccc95bec *man/NKPS.Rd
-1acdcd58f97f64142d4b8b0387dda6af *man/SampleStatistics.Rd
-c876239ac0a095a7bf0a82e893918f29 *man/Smoking.Rd
+520e2368c75a4aeb43747da71daab99c *man/SampleStatistics.Rd
+2b1538818c57ac3e1ecf47184326bafb *man/Smoking.Rd
 e5b6b4a88d2add763def4ab2c16d9a8b *man/SpecifyCoefficient.Rd
+bda3160e29728f98802596e8d28bee4c *man/TestCronbachAlpha.Rd
 fda382bee24863158dfb1ff507734088 *man/cmm-package.Rd
