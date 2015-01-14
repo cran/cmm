@@ -77,7 +77,7 @@ Dykstra, et al. (2004)
 data(NKPS)
 attach(NKPS)
 
-############################################################################################################
+#######################################################################################
 # Chapter 2
 
 # Table 2.8
@@ -113,13 +113,16 @@ nAB = c(t(ftable(recAB)))
 
 ########################################################
 # table AB and GT
-# at produces marginal distributions of A and B, or the 2x3 table GT; G = generation and T = attititude
-at = MarginalMatrix(c("A", "B"), list(c("A"), c("B")), c(3, 3));
-bt = ConstraintMatrix(c("G", "T"), list(c("G"), c("T")), c(2, 3));
+# at produces marginal distributions of A and B, or the 2x3 table GT; 
+# G = generation and T = attititude
+at <- MarginalMatrix(c("A", "B"), list(c("A"), c("B")), c(3, 3));
+bt <- ConstraintMatrix(c("G", "T"), list(c("G"), c("T")), c(2, 3));
 
-model1 = list(bt, "log", at);
+model1 <- list(bt, "log", at);
 
-nkps1 = MarginalModelFit(recAB, model1,ShowParameters=TRUE,Labels=list(list("G",c("men","women")),"T"),CoefficientDimensions=c(2,3),ShowProgress=10)
+nkps1 <- MarginalModelFit(dat = recAB, model = model1, ShowParameters = TRUE, 
+ Labels = list(list("G", c("men", "women")), "T"), 
+ CoefficientDimensions = c(2, 3), ShowProgress = 10)
 
 }
 \keyword{datasets}

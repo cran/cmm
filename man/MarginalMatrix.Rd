@@ -66,14 +66,16 @@ at %*% n
 
 # identitymatrix: several ways of specifying:
 marg <- c("A","B")
-MarginalMatrix(var,marg,dim)
-MarginalMatrix(var,marg,dim,SubsetCoding=list(c("A","B"),list("Identity","Identity")))
-MarginalMatrix(var,marg,dim,SubsetCoding=list(c("A","B"),list(rbind(c(1,0),c(0,1)),rbind(c(1,0,0),c(0,1,0),c(0,0,1)))))
+MarginalMatrix(var, marg,dim)
+MarginalMatrix(var, marg, dim,
+ SubsetCoding = list(c("A", "B"), list("Identity", "Identity")))
+MarginalMatrix(var, marg, dim,
+ SubsetCoding = list(c("A","B"), list(rbind(c(1,0),c(0,1)), rbind(c(1,0,0),c(0,1,0),c(0,0,1)))))
 
 # omit second category of first variable
-at <- MarginalMatrix(var,marg,dim,SubsetCoding=list(c("A","B"),list(rbind(c(1,0)),"Identity")))
+at <- MarginalMatrix(var, marg, dim,
+ SubsetCoding = list(c("A","B"), list(rbind(c(1,0)),"Identity")))
 at %*% n
-
 }
 
 \keyword{univar}

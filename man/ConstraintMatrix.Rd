@@ -76,16 +76,30 @@ ConstraintMatrix(c("A"),c("A"),c(5),SubsetCoding=list(c("A"),"Quadratic"))
 
 # Constraint matrix for linear by nominal model, various methods:
 # simplest method which assumes equidistant centered scores:
-ConstraintMatrix(c("A","B"),c("A","B"),c(3,3),SubsetCoding=list(c("A","B"),list("Linear","Nominal")))
+ConstraintMatrix(
+ var = c("A", "B"),
+ suffconfigs = c("A", "B"),
+ dim = c(3, 3),
+ SubsetCoding = list(c("A", "B"), list("Linear", "Nominal")))
 # alternative specification with same result as above:
-ConstraintMatrix(c("A","B"),c("A","B"),c(3,3),SubsetCoding=list(c("A","B"),list(rbind(c(-1,0,1)),rbind(c(1,0,0),c(0,1,0)))))
+ConstraintMatrix(
+ var = c("A", "B"),
+ suffconfigs = c("A", "B"),
+ dim = c(3, 3),
+ SubsetCoding = list(c("A", "B"), list(rbind(c(-1, 0, 1)), rbind(c(1, 0, 0), c(0, 1, 0)))))
 # specifying your own category scores
-scores=c(1,2,5);
-ConstraintMatrix(c("A","B"),c("A","B"),c(3,3),SubsetCoding=list(c("A","B"),list(rbind(scores),"Nominal")))
+scores <- c(1,2,5);
+ConstraintMatrix(
+ var = c("A", "B"),
+ suffconfigs = c("A", "B"),
+ dim = c(3, 3),
+ SubsetCoding = list(c("A", "B"), list(rbind(scores), "Nominal")))
 
 
-# Constraint matrix for nominal by nominal model, equating parameters of last two categories of second variable:
-ConstraintMatrix(c("A","B"),c("A","B"),c(3,3),SubsetCoding=list(c("A","B"),list("Nominal",rbind(c(1,0,0),c(0,1,1)))))
+# Constraint matrix for nominal by nominal model, equating parameters of 
+# last two categories of second variable:
+ConstraintMatrix(var = c("A", "B"), suffconfigs = c("A", "B"), dim = c(3,3),
+ SubsetCoding = list(c("A", "B"), list("Nominal", rbind(c(1, 0, 0), c(0, 1, 1)))))
 }
 
 \keyword{univar}

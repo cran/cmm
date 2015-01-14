@@ -64,34 +64,52 @@ Several worked examples involving this data set are listed below but more can be
 }
 
 \examples{
- data(BodySatisfaction)
+data(BodySatisfaction)
 
- ## Reproduction of Table 2.5 in Bergsma, Croon, & Hagenaars (2009)
- sapply(2:8,function(i){table(BodySatisfaction[,i])})
+## Reproduction of Table 2.5 in Bergsma, Croon, & Hagenaars (2009)
+sapply(2:8,function(i){table(BodySatisfaction[,i])})
 
- ## Table 2.6 in Bergsma, Croon and Hagenaars (2009). Loglinear parameters for marginal table IS
- ## We provide two to obtain the parameters
+## Table 2.6 in Bergsma, Croon and Hagenaars (2009). 
+## Loglinear parameters for marginal table IS
+## We provide two to obtain the parameters
 
- ## Reproduction of Table 2.7 in Bergsma, Croon, & Hagenaars (2009)
- Table.2.7.male   <- sapply(2:8,function(i){table(BodySatisfaction[BodySatisfaction[1]=="Male",i])})
- Table.2.7.male
- apply(Table.2.7.male,2,sum)                               #totals
- apply(Table.2.7.male,2,function(x){sum(c(1:5)*x/sum(x))}) #means
- sqrt(apply(Table.2.7.male,2,function(x){(sum(c(1:5)^2*x/sum(x)))-(sum(c(1:5)*x/sum(x)))^2}))#standard deviations
+## Reproduction of Table 2.7 in Bergsma, Croon, & Hagenaars (2009)
+Table.2.7.male <- 
+ sapply(2:8,function(i){table(BodySatisfaction[BodySatisfaction[1]=="Male",i])})
+Table.2.7.male
+#totals
+apply(Table.2.7.male,2,sum)                               
+#means
+apply(Table.2.7.male,2,function(x){sum(c(1:5)*x/sum(x))}) 
+#standard deviations
+sqrt(apply(Table.2.7.male,2,function(x){(sum(c(1:5)^2*x/sum(x)))-(sum(c(1:5)*x/sum(x)))^2}))
+                                                           
 
 \dontrun{
- dat   <- BodySatisfaction[,2:8]        # omit first column corresponding to gender
+dat   <- BodySatisfaction[,2:8]        # omit first column corresponding to gender
 
- # matrix producing 1-way marginals, ie the 7x5 table IS
- at75 <- MarginalMatrix( c(1, 2, 3, 4, 5, 6, 7), list(c(1),c(2),c(3),c(4),c(5),c(6),c(7)), c(5, 5, 5, 5, 5, 5, 5) )
+# matrix producing 1-way marginals, ie the 7x5 table IS
+at75 <- MarginalMatrix(var = c(1, 2, 3, 4, 5, 6, 7), 
+  marg = list(c(1),c(2),c(3),c(4),c(5),c(6),c(7)), 
+  dim = c(5, 5, 5, 5, 5, 5, 5))
+# First method: the "coefficients" are the log-probabilities, 
+# from which all the (loglinear) parameters are calculated
+stats <- SampleStatistics(dat = dat, 
+  coeff = list("log", at75), 
+  CoefficientDimensions=c(7, 5),
+  Labels=c("I", "S"),
+  ShowCoefficients = FALSE,
+  ShowParameters = TRUE)
 
- # First method: the "coefficients" are the log-probabilities, from which all the (loglinear) parameters are calculated
- stats = SampleStatistics(dat, list("log",at75), CoefficientDimensions=c(7,5),Labels=c("I","S"),ShowCoefficients=FALSE,ShowParameters=TRUE)
-
- # Second method: the "coefficients" are explicitly specified as being the (highest-order) loglinear parameters
+ # Second method: the "coefficients" are explicitly specified as being the 
+ # (highest-order) loglinear parameters
  loglinpar75 <- SpecifyCoefficient("LoglinearParameters", c(7,5) )
- stats = SampleStatistics(dat, list(loglinpar75, at75), CoefficientDimensions=c(7,5), Labels=c("I","S"))
+ stats = SampleStatistics(dat = dat, 
+  coeff = list(loglinpar75, at75), 
+  CoefficientDimensions = c(7, 5), 
+  Labels = c("I", "S"))
 }
- #For further worked examples from the book, see http://stats.lse.ac.uk/bergsma/cmm/R files/BodySatisfaction.R
+#For further worked examples from the book, 
+# see http://stats.lse.ac.uk/bergsma/cmm/R files/BodySatisfaction.R
 }
 \keyword{datasets}

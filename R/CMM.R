@@ -1817,7 +1817,7 @@ getsamplestats = function(dat,coeff,CoefficientDimensions,ParameterCoding,Labels
     covresid <- NULL
     covtheta <- GDG
     obsval = gfunction( atn + eps, coeff$coeff )
-    cat("\n")
+#   cat("\n")
     stats = c(stats,coefficientstats( obsval, obsval, covtheta, covresid, CoefficientDimensions, Labels, satmod=TRUE, ParameterCoding=ParameterCoding ))
 }
 

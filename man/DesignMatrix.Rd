@@ -91,17 +91,32 @@ DesignMatrix(c("A"),c("A"),c(5),SubsetCoding=list(c("A"),"Quadratic"))
 
 # Design matrix for linear by nominal model, various methods:
 # simplest method which assumes equidistant centered scores:
-DesignMatrix(c("A","B"),c("A","B"),c(3,3),SubsetCoding=list(c("A","B"),list("Linear","Nominal")))
+DesignMatrix(
+ var = c("A","B"),
+ suffconfigs = c("A", "B"),
+ dim = c(3,3),
+ SubsetCoding = list(c("A","B"),list("Linear","Nominal")))
 # alternative specification with same result as above:
-DesignMatrix(c("A","B"),c("A","B"),c(3,3),SubsetCoding=list(c("A","B"),list(rbind(c(-1,0,1)),rbind(c(1,0,0),c(0,1,0)))))
+DesignMatrix(
+ var = c("A", "B"),
+ suffconfigs = c("A", "B"),
+ dim = c(3, 3),
+ SubsetCoding = list(c("A","B"),list(rbind(c(-1,0,1)),rbind(c(1,0,0),c(0,1,0)))))
 # specifying your own category scores
-scores=c(1,2,5);
-DesignMatrix(c("A","B"),c("A","B"),c(3,3),SubsetCoding=list(c("A","B"),list(rbind(scores),"Nominal")))
+scores <- c(1,2,5);
+DesignMatrix(
+ var = c("A","B"),
+ suffconfigs = c("A","B"),
+ dim = c(3, 3),
+ SubsetCoding = list(c("A","B"), list(rbind(scores), "Nominal")))
 
-
-# Design matrix for nominal by nominal model, equating parameters of last two categories of second variable:
-DesignMatrix(c("A","B"),c("A","B"),c(3,3),SubsetCoding=list(c("A","B"),list("Nominal",rbind(c(1,0,0),c(0,1,1)))))
-
+# Design matrix for nominal by nominal model, equating parameters 
+# of last two categories of second variable:
+DesignMatrix(
+ var = c("A", "B"),
+ suffconfigs = c("A","B"),
+ dim = c(3,3),
+ SubsetCoding = list(c("A", "B"), list("Nominal", rbind(c(1, 0, 0), c(0, 1, 1)))))
 }
 
 \keyword{univar}

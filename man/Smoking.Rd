@@ -71,13 +71,15 @@ dat <- Smoking
 # Table TXBR
 # matrix producing 4x2x3x6 table TXBR
 
-atTXBR = MarginalMatrix(c("X", "B", "R1", "R2", "R3", "R4"), 
-                        list(c( "X", "B", "R1"), c("X", "B", "R2"), c("X", "B", "R3"), c("X", "B", "R4")), 
-                        c(2, 3, 5, 5, 5, 5))
-bt  = ConstraintMatrix(c("T", "X", "B", "R"), list(c("T", "X", "B"), c("R")), c(4, 2, 3, 5))
+atTXBR <- MarginalMatrix(var = c("X", "B", "R1", "R2", "R3", "R4"), 
+ marg = list(c("X", "B", "R1"), c("X", "B", "R2"), c("X", "B", "R3"), c("X", "B", "R4")), 
+ dim = c(2, 3, 5, 5, 5, 5))
+bt  <- ConstraintMatrix(var = c("T", "X", "B", "R"), suffconfigs = list(c("T", "X", "B"), c("R")), 
+ dim = c(4, 2, 3, 5))
 model = list(bt, "log", atTXBR)
 
-fit = MarginalModelFit(dat, model, MaxStepSize = .3, MaxSteps = 100, ShowProgress = 5)
+fit = MarginalModelFit(dat = dat, model = model, MaxStepSize = .3, MaxSteps = 100, 
+ ShowProgress = 5)
 }
 
 }

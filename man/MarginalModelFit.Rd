@@ -8,10 +8,11 @@
 }
 
 \usage{
-MarginalModelFit(dat, model, ShowSummary=TRUE, MaxSteps=1000, MaxStepSize=1, MaxError=1e-20, StartingPoint="Automatic",
-    MaxInnerSteps=2, ShowProgress=TRUE, CoefficientDimensions="Automatic",
-    Labels="Automatic",ShowCoefficients=TRUE,ShowParameters=FALSE, ParameterCoding="Effect",
-    ShowCorrelations=FALSE, Method="ML", Title="Summary of model fit" )
+MarginalModelFit(dat, model, ShowSummary = TRUE, MaxSteps = 1000, MaxStepSize = 1, 
+    MaxError = 1e-20, StartingPoint = "Automatic", MaxInnerSteps = 2, 
+    ShowProgress = TRUE, CoefficientDimensions="Automatic", Labels="Automatic",
+    ShowCoefficients = TRUE, ShowParameters = FALSE, ParameterCoding = "Effect",
+    ShowCorrelations = FALSE, Method = "ML", Title = "Summary of model fit")
 }
 
 \arguments{
@@ -151,8 +152,8 @@ fit = MarginalModelFit(NKPS[,c(3,4)], coeff )
 
 
 # Marginal homogeneity (MH) in a 3x3 table AB
-# Note that MH is equivalent to independence in the 2x3 table of marginals IR, in which the 
-# row with I=1 gives the A marginal, and the row with I=2 gives the B marginal 
+# Note that MH is equivalent to independence in the 2x3 table of marginals IR, in which 
+# the row with I=1 gives the A marginal, and the row with I=2 gives the B marginal 
 n <- c(1,2,3,4,5,6,7,8,9)
 at <- MarginalMatrix(c("A","B"),list(c("A"),c("B")),c(3,3))
 bt <- ConstraintMatrix(c("I","R"),list(c("I"),c("R")),c(2,3))
