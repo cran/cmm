@@ -1101,7 +1101,7 @@ SpecifyCoefficient <- function(
 #  bt = DirectSum(bt1,bt2)
 #  matlist = list();
 #  for(i in 1:length(matlist1)) matlist[[i]] = DirectSum(matlist1[[i]],matlist2[[i]])
-#  funlist = if( length(funlist1)==length(funlist2) && funlist1[[1]]==funlist2[[1]] ) funlist1 else break;
+#  funlist = if( length(funlist1)==length(funlist2) && funlist1[[1]]==funlist2[[1]] ) funlist1
 #  at = rbind(at1,at2)
 #  model = list(bt,list(matlist,funlist),at);
 #  
@@ -1383,15 +1383,15 @@ tomargmodform = function(margmodel){
       mm$bt = diag(nrow(mm$at));
       mm$coeff$matlist = list(id)
       mm$coeff$funlist = list("identity") }
-   else if(length(margmodel)>4) {print("Error in model specification: length of model should be at most four, in the form list(bt,coeff,at,d) representing the equation bt.coeff(at.pi)=d");break}
+   else if(length(margmodel) > 4) {print("Error in model specification: length of model should be at most four, in the form list(bt,coeff,at,d) representing the equation bt.coeff(at.pi)=d")}
 
-#   if(length(margmodel)==4) {print("Error in model specification: fourth element should be a numeric constant vector d from the formula bt.coeff(at.pi)=d ");break}
+#   if(length(margmodel)==4) {print("Error in model specification: fourth element should be a numeric constant vector d from the formula bt.coeff(at.pi)=d ")}
    
    #case 2: form is {bt,Log,at}
    else if(length(margmodel) == 3 && data.class(margmodel[[2]])=="character"){
       mm$bt = margmodel[[1]];
       mm$at = margmodel[[3]];
-      if(ncol(mm$bt)!=nrow(mm$at)) {cat("Incompatible matrix dimensions in model specification",dim(mm$bt),"and",dim(mm$at),"\n");break;};
+      if(ncol(mm$bt)!=nrow(mm$at)) {cat("Incompatible matrix dimensions in model specification",dim(mm$bt),"and",dim(mm$at),"\n")}
       mm$coeff$matlist = list(diag(ncol(mm$bt)))
       mm$coeff$funlist = list(margmodel[[2]])
    }
@@ -1456,7 +1456,7 @@ tomargmodform = function(margmodel){
       mm$bt = diag(df);
    }
    
-   else{ cat("Cannot recognize model specification", margmodel); break}
+   else{ cat("Cannot recognize model specification", margmodel)}
 
    #now homogenize margmodel specification
    k = ncol(mm$coeff$matlist[[length(mm$coeff$matlist)]]);

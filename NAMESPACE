@@ -15,6 +15,9 @@ export(
  SpecifyCoefficient
 )
 
+importFrom("stats", "pchisq", "var", "ftable")
+
+
 # used internally - not intended to be visible to users
 # All other functions (not listed)
 #

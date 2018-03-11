@@ -35,7 +35,7 @@ US National Election Studies.
 
  Bergsma, W. P., Croon, M. A., & Hagenaars, J. A. P. (2009).\emph{Marginal models for dependent, clustered, and longitudinal categorical data.}New York: Springer.
 
- Examples in book: \url{http://stats.lse.ac.uk/bergsma/cmm/R files/NES.R}
+ Examples in book: http://stats.lse.ac.uk/bergsma/cmm/R files/NES.R
 }
 \examples{
 data(NES)

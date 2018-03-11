@@ -149,7 +149,7 @@ data(TestCronbachAlpha)
   fit <- MarginalModelFit(n, model, MaxError = 1e-04)
 
 #Example 2: Testing H02.
-
+\donttest{          
   # Data
   TestCronbachAlphaH2 <- TestCronbachAlpha[1 : 400, 1 : 11]
   
@@ -179,9 +179,9 @@ data(TestCronbachAlpha)
   # Compute CMM
   model <- list(bt,coeff,at,d)
   fit <- MarginalModelFit(n, model, MaxError = 1e-04)
-  
+}  
 #Example 3: Testing H03.
-
+\donttest{          
   # Data
   TestCronbachAlphaH3 <- TestCronbachAlpha[1 : 200, 2 : 21]
 
@@ -224,7 +224,7 @@ data(TestCronbachAlpha)
   model <- list(bt, coeff, at, d)
   fit <- MarginalModelFit(n, model, MaxError = 1e-04)
 }
-
+}
 
 
 \keyword{datasets}

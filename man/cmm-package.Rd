@@ -7,16 +7,13 @@
 Categorical Marginal Models
 }
 \description{
-A package accompanying the book Marginal Models for Dependent,
-Clustered, and Longitudinal Categorical Data by Bergsma, Croon, &
-Hagenaars, 2009. It's purpose is fitting and testing of marginal models.
-}
+Quite extensive package for maximum likelihood estimation and weighted least squares estimation of categorical marginal models (CMMs; e.g., Bergsma & Rudas, 2002; Bergsma, Croon and Hagenaars, 2009}
 \details{
 \tabular{ll}{
 Package: \tab cmm\cr
 Type: \tab Package\cr
-Version: \tab 2.0\cr
-Date: \tab 2009-04-07\cr
+Version: \tab 0.12 \cr
+Date: \tab 2018-03-11\cr
 License: \tab GPL (>= 2)\cr
 }
 The package contains principal functions for analyzing marginal models for categorical data.
@@ -49,14 +46,10 @@ The package contains the following data sets
  \code{\link{NKPS}}
  \code{\link{NKPS2}}
  \code{\link{Smoking}}
-
-Thanks are due to Irena Mikolajun for reporting bugs;
-
 }
 \author{
 Wicher P. Bergsma
-L. Andries van der Ark
-Maintainer: Wicher P. Bergsma \email{w.p.bergsma@lse.ac.uk}.
+Maintainer: L. Andries van der Ark \email{L.A.vanderArk@uva.nl}.
 }
 
 \references{
@@ -67,8 +60,11 @@ Maintainer: Wicher P. Bergsma \email{w.p.bergsma@lse.ac.uk}.
 
   Bergsma, W. P., Croon, M. A., & Hagenaars, J. A. P. (2009).
   Marginal models for dependent, clustered, and longitudunal categorical data.
-  Berlin: Springer.
+  Berlin: Springer. <DOI: 10.1007/b12532>
 
+  Bergsma, W. P.& Rudas T. (2002). Marginal models for categorical data.
+  \emph{The Annals of Statistics, 30}, 1, 140-159. 
+  \url{ http://www.jstor.org/stable/2700006}
 }
 
 \keyword{package}

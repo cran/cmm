@@ -18,8 +18,7 @@ The data are tabulated in Bergsma, Croon, and Hagenaars (2009, Table 2.5, Table 
 
 See Sections 2.2.2 and 3.1 of Bergsma, Croon, and Hagenaars (2009).
 
-Several worked examples involving this data set are listed below but more can be found at \url{http://stats.lse.ac.uk/bergsma/cmm/R files/BodySatisfaction.R}"
-}
+Several worked examples involving this data set are listed below but more can be found at http://stats.lse.ac.uk/bergsma/cmm/R files/BodySatisfaction.R}
 
 \usage{data(BodySatisfaction)}
 \format{
