@@ -8,14 +8,16 @@ export(
  JoinModels,
  MarginalMatrix,
  MarginalModelFit,
+ Margins,
  ModelStatistics,
 # MultiCoefficient,
-# RecordsToFrequencies,
+ RecordsToFrequencies,
  SampleStatistics,
  SpecifyCoefficient
 )
 
 importFrom("stats", "pchisq", "var", "ftable")
+importFrom("utils", "combn")
 
 
 # used internally - not intended to be visible to users

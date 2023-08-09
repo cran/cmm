@@ -12,8 +12,8 @@ Quite extensive package for maximum likelihood estimation and weighted least squ
 \tabular{ll}{
 Package: \tab cmm\cr
 Type: \tab Package\cr
-Version: \tab 0.12 \cr
-Date: \tab 2018-03-11\cr
+Version: \tab 1.0 \cr
+Date: \tab 2023-08-08\cr
 License: \tab GPL (>= 2)\cr
 }
 The package contains principal functions for analyzing marginal models for categorical data.
@@ -46,6 +46,14 @@ The package contains the following data sets
  \code{\link{NKPS}}
  \code{\link{NKPS2}}
  \code{\link{Smoking}}
+ 
+As of version 1.0, the option of maximum augmented empirical likelihood estimation (MAEL) estimation (Van der Ark et al., 2023), which is particularly useful for large data set.
+The following functions were added: 
+ \code{\link{Margins}}
+ \code{\link{RecordsToFrequencies}};
+the following data set was added \code{\link{acl}};
+and the following function was updated: \code{\link{MarginalMatrix}}.
+
 }
 \author{
 Wicher P. Bergsma
@@ -60,11 +68,16 @@ Maintainer: L. Andries van der Ark \email{L.A.vanderArk@uva.nl}.
 
   Bergsma, W. P., Croon, M. A., & Hagenaars, J. A. P. (2009).
   Marginal models for dependent, clustered, and longitudunal categorical data.
-  Berlin: Springer. <DOI: 10.1007/b12532>
+  Berlin: Springer. \doi{10.1007/b12532}
 
   Bergsma, W. P.& Rudas T. (2002). Marginal models for categorical data.
   \emph{The Annals of Statistics, 30}, 1, 140-159. 
-  \url{ http://www.jstor.org/stable/2700006}
+  \doi{10.1214/aos/1015362188}
+  
+  Van der Ark, L. A., Bergsma, W. P., & Koopman L. (2023)
+  Maximum augmented empirical likelihood estimation of categorical marginal models for large sparse contingency tables. 
+  Paper submitted for publication.
+
 }
 
 \keyword{package}

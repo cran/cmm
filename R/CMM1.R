@@ -1,17 +1,18 @@
+# Code file for CMM Version 1
+#
 # R programme for the book:
 #
 # Marginal models
 # Models for Dependent, Clustered, and Longitudinal Categorical Data
 # www.cmm.st
 # 
-# Wicher P. Bergsm
+# Wicher P. Bergsma
 # Marcel Croon
 # Jacques A. Hagenaars
 #
 # Springer, Statistics for the Social Sciences
 #
-# This R-programme is written by Wicher Bergsma and Andries van der Ark, 2009
-#
+# This R-programme is written by Wicher Bergsma and Andries van der Ark, 2009; updated 2023
 #
 ##############################################################################
 ##############################################################################
@@ -41,7 +42,7 @@
 #
 #   Data formatting:
 # 
-#       RecordsToFrequencies( rec, dim )
+#       RecordsToFrequencies(dat, dim )
 # 
 ##############################################################################
 ##############################################################################
@@ -103,7 +104,6 @@ allnsubsets=function(x,n,index=1){rev(allnsubsets1(x,n,index))}
 
 #allnsubsets(c(1,2,3,4),2)
 
-
 #finds all subsets of a set or a list of sets
 allsubsets1 <- function(x){
    if ( data.class(x) == "NULL" ) { subsets <- c() }
@@ -129,7 +129,16 @@ allsubsets = function(x){c("NULL",allsubsets1(x))}
 #allsubsets(list(c(1,2,3)))
 #allsubsets(list(c(1,2),c(2,3),c(1,4)))
 
+#############
+# AA: Nieuwe export functie om 'marg' makkelijker te maken bij veel variabelen.
+#     allnsubsets() is al een interne functie van cmm
+Margins <- function(var, k){ 
+  rtn <- NULL 
+  for (idx in k) if (idx == 0L) rtn <- append(rtn, 0) else rtn <- append(rtn, as.list(as.data.frame(combn(length(var), idx))))
+  return(unname(rtn))
+} 
 
+#############
 
 
 ##############################################################################
@@ -138,7 +147,7 @@ allsubsets = function(x){c("NULL",allsubsets1(x))}
 
 desmat1 = function(var, subvar, dim, coding ){
 
-   #(*lmat2 produces kxk-matrix*)
+   #(*lmat2 produces kxk-matrix*)     ## AA 02-05-2023: produceert een "? x k"matrix (bv bij 'quintic' is het een 5 x k matrix) 
    lmat2 = function(type,k){
       x = c(1:k) - mean(c(1:k));
       switch( type,
@@ -179,7 +188,6 @@ desmat1 = function(var, subvar, dim, coding ){
 
 
 DesignMatrix = function(var, suffconfigs, dim, SubsetCoding="Automatic", MakeSubsets=TRUE){
-
    suffconfigs = if(is.list(suffconfigs)) suffconfigs else list(suffconfigs)
    marglist = if(MakeSubsets) allsubsets(suffconfigs) else suffconfigs;
    nmarg=length(marglist);
@@ -213,41 +221,57 @@ DesignMatrix = function(var, suffconfigs, dim, SubsetCoding="Automatic", MakeSub
 #DesignMatrix(c(1,2,3),list(c(1,2),c(2,3)),c(3,3,3),SubsetCoding=list(list(c(1,2),c("Linear","Linear")),list(c(1,2),c("Linear","Linear"))))
 #t(DesignMatrix(c(1,2),c(1,2),c(3,3),SubsetCoding="Identity",MakeSubsets=FALSE))
 
+#################
+# AA: EMarginalMatrix: Hulpfunctie voor MarginalMatrix() bij MEL of MAEL.
 
-
-EMarginalMatrix <- function(X, marg=NULL, var=var.default, dim=NULL){
-  var.default <- 1:ncol(X)
-  X <- X[,var]
-  if(class(marg)!="list")marg <- list(marg)
-  match.c <- function(strng,positions,criteria) all(unlist(strsplit(strng,NULL))[positions] == criteria)
-  # dim.default <- apply(cbind(X,NA),2, unique)[-(ncol(X)+1)]
-  # dim <- lapply(dim, sort)
-  
-  n <- table(apply(X,1,paste, collapse=""))
-  lab.n <- names(n)
+EMarginalMatrix <- function(nLab, var, marg, dim){
+  dim <- lapply(dim, function(x) 1:x)
+  cMatch <- function(strng, positions, criteria) all(unlist(strsplit(strng, NULL))[positions] == criteria)
   D <- NULL; i <- 1; j <- 1
   for (i in 1:length(marg)){
-    if(is.null(marg[[i]])) D <- rbind(D, rep(1,length(lab.n)))
-    else{
-      c.values <- expand.grid(dim[marg[[i]]])
-      if(ncol(c.values) > 1) c.values <- c.values[,ncol(c.values):1]
-      c.positions <- marg[[i]]
-      for (j in 1:nrow(c.values)) D <- rbind(D,sapply(lab.n, match.c, c.positions, c.values[j,])*1)
-    }
+    if(length(marg[[i]]) == 1 & any(marg[[i]] == 0L)) { 
+        newD <- matrix(rep(1, length(nLab)), nrow = 1)
+        name <- rep("+", length(var))
+        dimnames(newD) <- list(paste(name, collapse = ""), nLab)
+        D <- rbind(D, newD)
+    } else {
+       cValues <- expand.grid(dim[marg[[i]]])
+       if(ncol(cValues) > 1) cValues <- cValues[, ncol(cValues):1]
+       cPositions <- marg[[i]]
+       for (j in 1:nrow(cValues)){ 
+         newD <- matrix(sapply(nLab, cMatch, cPositions, cValues[j,]) * 1, nrow = 1) 
+         name <- rep("+", length(var))
+         name[marg[[i]]] <- cValues[j, ]
+         dimnames(newD) <- list(paste(name, collapse = ""), nLab)
+         D <- rbind(D, newD)
+       }
+    }   
   }
-  return(D)
+  if(any(apply(D,1,sum)== 0)) warning("Some margins were not observed")
+  return(D[apply(D,1,sum)!=0,])
 }
 
-MarginalMatrix = function(var,marg,dim,SubsetCoding="Identity",SelectCells="All"){
-   if( isTRUE(SelectCells=="All") )
-      t(DesignMatrix(var,marg,dim,SubsetCoding=SubsetCoding,MakeSubsets=FALSE))
-   else
-      EMarginalMatrix(SelectCells,marg,var,dim)
-}
+#################
+# AA: MarginalMatrix has been slightly adjusted. 
+#     Argument 'vec' has been added. If is.null(vec) the traditional MarginalMatrix is built, 
+#     if vec = is the frequency vector with rownames equal to the score patterns, then vec is used for building the MarginalMatrix.
+ 
+MarginalMatrix = function(var, marg, dim, SubsetCoding = "Identity", vec = NULL){
+     if (is.null(vec)){
+      if (prod(dim) > 100000) warning("Marginal matrix is very large. Please consider using reduced-cells estimation method MAEL")
+      t(DesignMatrix(var, marg, dim, SubsetCoding = SubsetCoding, MakeSubsets = FALSE))
+     } else {
+     if (!inherits(vec, "matrix")) stop("Argument 'vec' must be of class 'matrix'.")
+     if (is.null(dimnames(vec)[[1]])) stop("Argument 'vec' must have dimnames representing the variable scores.")
+     EMarginalMatrix(dimnames(vec)[[1]], var, marg, dim)  
+  }
+}    
+
+#MarginalMatrix(var, 1)
 #MarginalMatrix(c(1,2),list(c(1),c(2)),c(3,3))
+#MarginalMatrix(c(1,),list(c(1),c(2)),c(3,3))
 
-new.null <- function (M) {
-#   library(MASS)
+newnull <- function (M) {
    tmp <- qr(M)
    set <- if (tmp$rank == 0) 1:ncol(M) else -(1:tmp$rank)
    qr.Q(tmp, complete = TRUE)[, set, drop = FALSE]
@@ -256,7 +280,7 @@ new.null <- function (M) {
 
 #returns hierarchical model constraint matrix, ie nullspace of design matrix
 ConstraintMatrix = function(var,suffconfigs,dim, SubsetCoding="Automatic"){
-   return(t(new.null(DesignMatrix(var,suffconfigs,dim,SubsetCoding))))
+   return(t(newnull(DesignMatrix(var,suffconfigs,dim,SubsetCoding))))
    }
 
 #ConstraintMatrix(c(1,2),list(c(1),c(2)),c(2,2))
@@ -314,29 +338,6 @@ betamat = function(var, subvar, dim, coding){
 #   
 #   lmat2["Polynomial", k_] := 
 #   lmat2[{"Polynomial", Range[k] - (k + 1)/2}, k];
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 ###############################################################################################
@@ -598,7 +599,7 @@ spec.cohenkappa <- function(k){
 #coeff=spec.cohenkappa(2)
 #gfunction(c(4,2,6,4),coeff)
 
-all.patterns <- function(J,m){
+allPatterns <- function(J,m){
   grid <- list()
   j <- 0;
   p <- m^J
@@ -644,15 +645,15 @@ spec.cronbachalpha <- function(arg, data){
     items <- arg[[1]][[i]]
     J <- length(items)
     g <- arg[[2]][[i]]
-    group.var <- NULL
-    if(length(arg)==3) group.var <- 1
+    groupVar <- NULL
+    if(length(arg)==3) groupVar <- 1
     if (method==1){
-      R <- all.patterns(J,g)
+      R <- allPatterns(J,g)
     } else {
-      if(is.null(group.var)) Y <- data[,items] else Y <- data[data[,group.var]==i,items]
+      if(is.null(groupVar)) Y <- data[,items] else Y <- data[data[,groupVar]==i,items]
       if(any(apply(Y,2,var) < eps))stop("One or more variables have zero variance")  
-      lab.n <- matrix(names(table(apply(Y,1,paste, collapse=""))))
-      R <- apply(lab.n,1,string2integer)
+      nLab <- matrix(names(table(apply(Y,1,paste, collapse=""))))
+      R <- apply(nLab,1,string2integer)
     }
     S <- U(1,J) %*% R
     C5 <- rbind(R,S,R^2,S^2,U(1,ncol(R)))
@@ -726,15 +727,15 @@ spec.mokkenh <- function(arg, data){
     items <- arg[[1]][[i]]
     J <- length(items)
     g <- arg[[2]][[i]]
-    group.var <- NULL
-    if(length(arg)==3) group.var <- 1
+    groupVar <- NULL
+    if(length(arg)==3) groupVar <- 1
     if (method==1){
-      R <- all.patterns(J,g)
+      R <- allPatterns(J,g)
     } else {
-      if(is.null(group.var)) Y <- data[,items] else Y <- data[data[,group.var]==i,items]
+      if(is.null(groupVar)) Y <- data[,items] else Y <- data[data[,groupVar]==i,items]
       if(any(apply(Y,2,var) < eps))stop("One or more variables have zero variance")  
-      lab.n <- matrix(names(table(apply(Y,1,paste, collapse=""))))
-      R <- apply(lab.n,1,string2integer)
+      nLab <- matrix(names(table(apply(Y,1,paste, collapse=""))))
+      R <- apply(nLab,1,string2integer)
     }
     p <- J*(J-1)/2
   
@@ -805,15 +806,15 @@ spec.allmokkenhj <- function(arg, data){
     items <- arg[[1]][[i]]
     J <- length(items)
     g <- arg[[2]][[i]]
-    group.var <- NULL
-    if(length(arg)==3) group.var <- 1
+    groupVar <- NULL
+    if(length(arg)==3) groupVar <- 1
     if (method==1){
-      R <- all.patterns(J,g)
+      R <- allPatterns(J,g)
     } else {
-      if(is.null(group.var)) Y <- data[,items] else Y <- data[data[,group.var]==i,items]
+      if(is.null(groupVar)) Y <- data[,items] else Y <- data[data[,groupVar]==i,items]
       if(any(apply(Y,2,var) < eps))stop("One or more variables have zero variance")  
-      lab.n <- matrix(names(table(apply(Y,1,paste, collapse=""))))
-      R <- apply(lab.n,1,string2integer)
+      nLab <- matrix(names(table(apply(Y,1,paste, collapse=""))))
+      R <- apply(nLab,1,string2integer)
     }
     p <- J*(J-1)/2
   
@@ -1145,13 +1146,94 @@ JoinModels <- function(...){
 ###############################################################################################
 ###############################################################################################
 ###############################################################################################
-# Misc functions (Andries)
+
+# Aangepaste functie RecordToFrequencies om op basis van data (record) een vector met frequenties te maken (voor MEL en MAEL schattingen)
+# augmentData is een hulpfunctie
 
 
-#simplification using ftable
-RecordsToFrequencies <- function(data){ c(t(ftable(data))) }
+augmentData <- function(Y, dim, augment = 2, eps = 0){
+  N <- nrow(Y)                                 # Sample size
+  J <- ncol(Y)                                 # Number of items
+  Q <- choose(J, augment)                      # The number of a-tuples of items (i.e., items if a==1, pairs if a==2, triples if a==3, quadruples if a==4)
+  # scores <- lapply(as.list(dim), function(x) 1:x)
+  scores <- dim
 
-#dat=rbind(c(1,1,2),c(2,1,3))
+  # MAKING THE AUGMENTED DATA
+  # Ylist: list with Q elements containing the observed scores for each a-tuple of items
+  # Ilist: list with Q elements containing all possible scores for each a-tuple of items
+  # Addlist: list with Q elements containing the unobserved scores for each a-tuple of items
+
+  A <- combn(1:J, augment)
+
+  q <- NULL
+  Ylist <- Ylistc <- Ilist <- Ilistc <- Addlist <- list()
+  for (q in 1:Q){
+    Ylist[[q]] <- Y[,A[,q]]
+    if(!is.matrix(Ylist[[q]])) Ylist[[q]] <- matrix(Ylist[[q]],,1)
+    Ylistc[[q]] <- apply(Ylist[[q]],1,paste, collapse="")
+    Ilist[[q]] <- as.matrix(expand.grid(scores[A[,q]]))
+    if(!is.matrix(Ilist[[q]])) Ilist[[q]] <- matrix(Ilist[[q]],,1)
+    Ilistc[[q]] <- apply(Ilist[[q]],1,paste, collapse="")
+    Addlist[[q]] <- Ilist[[q]][Ilistc[[q]] %in% Ylistc[[q]] == FALSE,]
+    if(!is.matrix(Addlist[[q]])) Addlist[[q]] <- matrix(Addlist[[q]],1)
+    if(length(Addlist[[q]])==0) Addlist[[q]] <- matrix(NA,0,augment)
+  }
+
+  # augY: augmented data
+  # augY are the required scores from Addlist on each a-tuple of items, the remaining scores are NA
+  augY <- NULL
+  for (q in 1:Q){
+    tmp <- matrix(,nrow(Addlist[[q]]),J)
+    tmp[,A[,q]] <- Addlist[[q]]
+    augY <- rbind(augY,tmp)
+  }
+  # Imputation of random values
+  for (j in 1:J) augY[,j][is.na(augY[,j])] <- sample(scores[[j]],length(augY[,j][is.na(augY[,j])]),TRUE)
+
+  # Remove duplicated response patterns
+  if(nrow(augY) > 1){
+    augY <- augY[!duplicated(apply(augY, 1, paste, collapse="")), ]
+    if(!is.matrix(augY)) augY <- matrix(augY, 1)
+  }
+
+  # Create the corresponding vector of frequencies (zero by definition)
+  augn <- matrix(eps, nrow(augY), 1)
+  if(nrow(augY) == 1) dimnames(augn)[[1]] <- list(apply(augY, 1, paste, collapse = ""))
+  if(nrow(augY) > 1) dimnames(augn)[[1]] <- apply(augY, 1, paste, collapse = "")
+  return(list(augY, augn))
+}
+
+RecordsToFrequencies <- function(dat, var = varDefault, dim = dimDefault, augment = "all", seed = FALSE){ 
+   if (!is.matrix(dat)) stop("Argument 'dat' must be of class 'matrix'.")
+   varDefault <- 1:ncol(dat)
+   if(is.numeric(seed)) set.seed(seed)
+   Yobs <- dat[, var]
+   nobs <- as.matrix(table(apply(Yobs, 1, paste, collapse="")))
+   dim <- lapply(dim, function(x) 1:x)
+   dimDefault <- apply(cbind(Yobs, NA), 2, function(x) sort(unique(x)))[-(ncol(Yobs) + 1)]
+   nCells <- prod(sapply(dim, length))
+   if (nCells > 1e06 & augment == "all") { 
+      warning("Number of cells exceeds 1e06. Cannot compute frequencies for all cells. Instead '1k' augmentation is used.")
+      augment <- "1k"
+      }
+   if (augment == "obs") n <- nobs
+   if (augment == "all"){ 
+      nlab <- sort(apply(expand.grid(dim), 1, paste, collapse = ""))
+      n <- matrix(rep(0, length(nlab)), dimnames = list(nlab,""))
+      n[(nlab %in% dimnames(nobs)[[1]]), ] <- nobs[,]
+   }  
+   if (augment == "1k" | augment == "2k"){ 
+      k <- switch(augment, "1k"  = 2, "2k" = 4) 
+      aug <- augmentData(Yobs, dim, k)   # Generate augmented data 
+      Yaug  <- aug[[1]]                         
+      naug  <- aug[[2]]
+      n <- rbind(nobs, naug)
+      n <- as.matrix(n[order(dimnames(n)[[1]]),])
+   }
+   return(n)
+}
+
+#dat=rbind(c(1,1,2),c(2,1,3))i
 #RecordsToFrequencies(dat,c(2,2),SelectColumns=c(1,2))
 #RecordsToFrequencies(dat,c(2,2,3))
 
@@ -1189,9 +1271,11 @@ phi <- function(A,f, action){
     "identity" = A %*% f,
     "exp"      = A %*% exp(f),
     "log"      = A %*% log(abs(f)+eps),
+    "square"   = A %*% f^2,
     "sqrt"     = A %*% sqrt(f),
     "xlogx"    = A %*% (-f*log(f+eps)),
-    "xbarx"    = A %*% (f*(1-f))  # x(1-x)
+    "xbarx"    = A %*% (f*(1-f)), # x(1-x)
+    "xoverx"   = A %*% (f /(1-f))  # x/(1-x) 
     )
 }
 
@@ -1201,10 +1285,12 @@ dphi <- function(A,f,df, action){
   "identity" = A %*% df,
   "exp"      = A %*% (as.numeric(exp(f)) * df),
   "log"      = A %*% (as.numeric(1/(f+eps)) * df),
+  "square"   = A %*% (as.numeric(2*f) * df),
   "sqrt"     = A %*% (as.numeric(1/(2*sqrt(f))) * df),
   "xlogx"    = A %*% (as.numeric(-1-log(f+eps)) * df),
   "xbarx"    = A %*% (as.numeric(1-2*f) * df),  # x(1-x)
-  )
+  "xoverx"   = A %*% (as.numeric(1/(1-f)^2) * df)     # x/(1-x) 
+    )
 }
 
 pds <- function(n,m,lambda=1){
@@ -1570,7 +1656,7 @@ margmodfit = function(n, model, MaxSteps=1000, MaxError=1e-25, StartingPoint="Au
     d     <- margmod$d
         
     step <- 1             # Initial step size (no modification yet)
-    k <- 0                # index for iterations k = 1, 2, .... . k = 1 is initial iterration
+    k <- 0                # index for iterations k = 1, 2, ... , k = 1 is initial iterration
     w <- list()
     H <- matrix()
 

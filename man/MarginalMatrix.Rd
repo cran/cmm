@@ -4,7 +4,7 @@
 
 \description{Returns marginal matrix; i.e., matrix required to obtained marginal frequencies}
 
-\usage{MarginalMatrix(var, marg, dim, SubsetCoding="Identity",SelectCells="All")}
+\usage{MarginalMatrix(var, marg, dim, SubsetCoding = "Identity", vec = NULL)}
 
 \arguments{
 \item{var}{character or numeric vector containing variables}
@@ -12,7 +12,11 @@
 \item{dim}{numeric vector indicating the dimension of \code{var}}
 \item{SubsetCoding}{allows a (character) type or a matrix to be assigned to variables for each element of \code{suffconfigs},
 see examples and \code{DesignMatrix}}
-\item{SelectCells}{Useful option for empirical likelihood. Default "All" includes all columns, if a list of cells in the table is given only the corresponding columns of MarginalMatrix are included.}
+\item{vec}{Vector containing the observed frequencies of all observed cells and possibly some cells with frequency equal to zero. 
+           The rownames of \code{vec} must equal the score patterns associated with the cells. 
+           \code{vec} is typically created using \code{RecordsToFrequencies}, and allows maximum empirical maximum likelihood estimation or 
+           empirical likelihood estimation of CMMs; two estimation methods that do no require the evaluation of all cells that are useful if 
+           the number of score patterns  is large.} 
 }
 
 \details{
@@ -27,6 +31,7 @@ Special case of transposed \code{DesignMatrix}:
  t(DesignMatrix(var,marg,dim,SubsetCoding=SubsetCoding,MakeSubsets=FALSE))
 }
 Allows weighted sums of probabilities using \code{SubsetCoding}
+
 }
 
 
@@ -43,6 +48,10 @@ Allows weighted sums of probabilities using \code{SubsetCoding}
   Bergsma, W. P., Croon, M. A., & Hagenaars, J. A. P. (2009).
   Marginal models for dependent, clustered, and longitudunal categorical data.
   Berlin: Springer.
+  
+  Van der Ark, L. A., Bergsma, W. P., & Koopman L. (2023)
+  Maximum augmented empirical likelihood estimation of categorical marginal models for large sparse contingency tables. 
+  Paper submitted for publication.
 }
 
 
@@ -51,7 +60,7 @@ Allows weighted sums of probabilities using \code{SubsetCoding}
 }
 
 \seealso{
-\code{\link{ConstraintMatrix}}, \code{\link{DesignMatrix}}, \code{\link{DirectSum}}
+\code{\link{ConstraintMatrix}}, \code{\link{DesignMatrix}}, \code{\link{DirectSum}}, \code{\link{RecordsToFrequencies}}, \code{\link{Margins}}
 }
 
 \examples{
@@ -76,6 +85,22 @@ MarginalMatrix(var, marg, dim,
 at <- MarginalMatrix(var, marg, dim,
  SubsetCoding = list(c("A","B"), list(rbind(c(1,0)),"Identity")))
 at %*% n
+
+# Example of maximum augmented empirical likelihood (MAEL) estimation 
+data(acl)
+dat <- acl[, 1:2] + 1                                 # select 2 items from ACL 
+var <- 1 : ncol(dat)                                  # define the variables
+marg <- Margins(var, c(0, 1))                         # margins are total (0) and 1st order 
+dim <- rep(5, length(var))
+n.obs <- RecordsToFrequencies(dat, var, dim, "obs")   # frequency vector with observed cells
+t(n.obs)
+n.1k  <- RecordsToFrequencies(dat, var, dim, "1k")    # frequency vector with observed and
+                                                      # some unobserved cells
+t(n.1k)
+at.obs <- MarginalMatrix(var, marg, dim, vec = n.obs) # marginal matrix based on n.obs 
+at.obs
+at.1k  <- MarginalMatrix(var, marg, dim, vec = n.1k)  # marginal matrix based on n.1k
+at.1k
 }
 
 \keyword{univar}

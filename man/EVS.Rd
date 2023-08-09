@@ -3,7 +3,7 @@
 \docType{data}
 \title{European Values Study (EVS): attitude towards women's role in society}
 \description{
-European Values Study 1999/2000, Views on Women's Roles \url{http://www.europeanvaluesstudy.eu/}
+European Values Study 1999/2000, Views on Women's Roles.
 
 The data are tabulated in Bergsma, Croon, and Hagenaars (2009, Table 5.1a). 
 Section 5.1.2 in Bergsma, Croon and Hagenaars (2009).
